@@ -9,7 +9,6 @@
 # This file is deleted in the final PR of the port, when the frontier reaches zero.
 # Sorted, one repo-relative path per line. Blank lines and # comments are ignored.
 
-src/main/java/slimeknights/mantle/Mantle.java
 src/main/java/slimeknights/mantle/MantleEvents.java
 src/main/java/slimeknights/mantle/block/GaugeBlock.java
 src/main/java/slimeknights/mantle/block/IMultipartConnectedBlock.java
@@ -476,7 +475,6 @@ src/main/java/slimeknights/mantle/network/packet/UpdateHeldPagePacket.java
 src/main/java/slimeknights/mantle/network/packet/UpdateInventoryPagePacket.java
 src/main/java/slimeknights/mantle/network/packet/UpdateLecternPagePacket.java
 src/main/java/slimeknights/mantle/network/packet/package-info.java
-src/main/java/slimeknights/mantle/package-info.java
 src/main/java/slimeknights/mantle/plugin/jei/JEIPlugin.java
 src/main/java/slimeknights/mantle/plugin/jei/MantleJEIConstants.java
 src/main/java/slimeknights/mantle/plugin/jei/RetexturableRecipeExtension.java
