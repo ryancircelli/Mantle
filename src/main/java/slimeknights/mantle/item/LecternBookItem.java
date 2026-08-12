@@ -9,7 +9,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.level.block.entity.LecternBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import slimeknights.mantle.util.BlockEntityHelper;
 
 /**
@@ -48,12 +48,12 @@ public abstract class LecternBookItem extends TooltipItem implements ILecternBoo
     if (state.is(Blocks.LECTERN)) {
       BlockEntityHelper.get(LecternBlockEntity.class, world, pos)
 											 .ifPresent(te -> {
-                        ItemStack book = te.getBook();
-                        if (!book.isEmpty() && book.getItem() instanceof ILecternBookItem
-                            && ((ILecternBookItem) book.getItem()).openLecternScreen(world, pos, event.getEntity(), book)) {
-                          event.setCanceled(true);
-                        }
-                      });
+                      ItemStack book = te.getBook();
+                      if (!book.isEmpty() && book.getItem() instanceof ILecternBookItem
+                          && ((ILecternBookItem) book.getItem()).openLecternScreen(world, pos, event.getEntity(), book)) {
+                        event.setCanceled(true);
+                      }
+                    });
     }
   }
 

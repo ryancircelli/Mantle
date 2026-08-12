@@ -192,17 +192,6 @@ src/main/java/slimeknights/mantle/fluid/texture/FluidTextureCameraProvider.java
 src/main/java/slimeknights/mantle/fluid/texture/FluidTextureManager.java
 src/main/java/slimeknights/mantle/fluid/texture/package-info.java
 src/main/java/slimeknights/mantle/item/AbstractBookItem.java
-src/main/java/slimeknights/mantle/item/ArmorTooltipItem.java
-src/main/java/slimeknights/mantle/item/BlockTooltipItem.java
-src/main/java/slimeknights/mantle/item/BurnableBlockItem.java
-src/main/java/slimeknights/mantle/item/BurnableHangingSignItem.java
-src/main/java/slimeknights/mantle/item/BurnableSignItem.java
-src/main/java/slimeknights/mantle/item/BurnableTallBlockItem.java
-src/main/java/slimeknights/mantle/item/ContainerFoodItem.java
-src/main/java/slimeknights/mantle/item/EdibleItem.java
-src/main/java/slimeknights/mantle/item/LecternBookItem.java
-src/main/java/slimeknights/mantle/item/TooltipItem.java
-src/main/java/slimeknights/mantle/item/package-info.java
 src/main/java/slimeknights/mantle/network/packet/OpenNamedBookPacket.java
 src/main/java/slimeknights/mantle/network/packet/SwingArmPacket.java
 src/main/java/slimeknights/mantle/plugin/jei/JEIPlugin.java
