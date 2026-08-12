@@ -36,7 +36,6 @@ src/main/java/slimeknights/mantle/client/ExtraHeartRenderHandler.java
 src/main/java/slimeknights/mantle/client/ResourceColorManager.java
 src/main/java/slimeknights/mantle/client/SafeClientAccess.java
 src/main/java/slimeknights/mantle/client/TooltipKey.java
-src/main/java/slimeknights/mantle/client/book/BookHelper.java
 src/main/java/slimeknights/mantle/client/book/BookLoader.java
 src/main/java/slimeknights/mantle/client/book/BookScreenOpener.java
 src/main/java/slimeknights/mantle/client/book/HTMLUtils.java
@@ -286,9 +285,6 @@ src/main/java/slimeknights/mantle/loot/package-info.java
 src/main/java/slimeknights/mantle/network/packet/OpenLecternBookPacket.java
 src/main/java/slimeknights/mantle/network/packet/OpenNamedBookPacket.java
 src/main/java/slimeknights/mantle/network/packet/SwingArmPacket.java
-src/main/java/slimeknights/mantle/network/packet/UpdateHeldPagePacket.java
-src/main/java/slimeknights/mantle/network/packet/UpdateInventoryPagePacket.java
-src/main/java/slimeknights/mantle/network/packet/UpdateLecternPagePacket.java
 src/main/java/slimeknights/mantle/plugin/jei/JEIPlugin.java
 src/main/java/slimeknights/mantle/plugin/jei/MantleJEIConstants.java
 src/main/java/slimeknights/mantle/plugin/jei/RetexturableRecipeExtension.java

@@ -1,7 +1,7 @@
 package slimeknights.mantle.network.packet;
 
 import lombok.RequiredArgsConstructor;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -19,13 +19,13 @@ public class UpdateHeldPagePacket implements IPacket.Threadsafe {
 
   private final InteractionHand hand;
   private final String page;
-  public UpdateHeldPagePacket(FriendlyByteBuf buffer) {
+  public UpdateHeldPagePacket(RegistryFriendlyByteBuf buffer) {
     this.hand = buffer.readEnum(InteractionHand.class);
     this.page = buffer.readUtf(100);
   }
 
   @Override
-  public void encode(FriendlyByteBuf buf) {
+  public void encode(RegistryFriendlyByteBuf buf) {
     buf.writeEnum(hand);
     buf.writeUtf(this.page);
   }
