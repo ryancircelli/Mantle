@@ -201,7 +201,6 @@ src/main/java/slimeknights/mantle/command/client/package-info.java
 src/main/java/slimeknights/mantle/command/package-info.java
 src/main/java/slimeknights/mantle/command/tags/ModifyTagCommand.java
 src/main/java/slimeknights/mantle/command/tags/package-info.java
-src/main/java/slimeknights/mantle/data/predicate/item/ItemPredicate.java
 src/main/java/slimeknights/mantle/datagen/MantleBlockTagProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleFluidTagProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleFluidTooltipProvider.java
@@ -209,7 +208,6 @@ src/main/java/slimeknights/mantle/datagen/MantleFluidTransferProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleMenuTagProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleValues.java
 src/main/java/slimeknights/mantle/datagen/package-info.java
-src/main/java/slimeknights/mantle/fluid/FluidTransferHelper.java
 src/main/java/slimeknights/mantle/fluid/InvertedFluidType.java
 src/main/java/slimeknights/mantle/fluid/TextureFluidType.java
 src/main/java/slimeknights/mantle/fluid/texture/AbstractFluidTextureProvider.java
@@ -224,16 +222,6 @@ src/main/java/slimeknights/mantle/fluid/tooltip/FluidTooltipHandler.java
 src/main/java/slimeknights/mantle/fluid/tooltip/FluidUnit.java
 src/main/java/slimeknights/mantle/fluid/tooltip/FluidUnitList.java
 src/main/java/slimeknights/mantle/fluid/tooltip/package-info.java
-src/main/java/slimeknights/mantle/fluid/transfer/AbstractFluidContainerTransferProvider.java
-src/main/java/slimeknights/mantle/fluid/transfer/EmptyFluidContainerTransfer.java
-src/main/java/slimeknights/mantle/fluid/transfer/EmptyFluidWithNBTTransfer.java
-src/main/java/slimeknights/mantle/fluid/transfer/EmptyPotionTransfer.java
-src/main/java/slimeknights/mantle/fluid/transfer/FillFluidContainerTransfer.java
-src/main/java/slimeknights/mantle/fluid/transfer/FillFluidWithNBTTransfer.java
-src/main/java/slimeknights/mantle/fluid/transfer/FluidContainerTransferManager.java
-src/main/java/slimeknights/mantle/fluid/transfer/FluidContainerTransferPacket.java
-src/main/java/slimeknights/mantle/fluid/transfer/IFluidContainerTransfer.java
-src/main/java/slimeknights/mantle/fluid/transfer/package-info.java
 src/main/java/slimeknights/mantle/inventory/BaseContainerMenu.java
 src/main/java/slimeknights/mantle/inventory/CustomResultSlot.java
 src/main/java/slimeknights/mantle/inventory/EmptyItemHandler.java
@@ -345,7 +333,5 @@ src/main/java/slimeknights/mantle/registration/adapter/BlockRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/adapter/ItemRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/deferred/BlockDeferredRegister.java
 src/main/java/slimeknights/mantle/registration/deferred/FluidDeferredRegister.java
-src/main/java/slimeknights/mantle/registration/object/FlowingFluidObject.java
-src/main/java/slimeknights/mantle/registration/object/FluidObject.java
 src/main/java/slimeknights/mantle/util/CombatHelper.java
 src/main/java/slimeknights/mantle/util/OffhandCooldownTracker.java
