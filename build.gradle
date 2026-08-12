@@ -284,7 +284,7 @@ tasks.named('processResources', ProcessResources).configure {
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
 }
@@ -312,7 +312,7 @@ sourcesJar {
     exclude 'data/**'
     exclude 'pack.png'
     exclude 'pack.mcmeta'
-    exclude 'META-INF/mods.toml'
+    exclude 'META-INF/neoforge.mods.toml'
 }
 
 artifacts {
