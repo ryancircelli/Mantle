@@ -6,6 +6,3 @@
 
 src/test/java/slimeknights/mantle/client/book/BookHelperTest.java
 src/test/java/slimeknights/mantle/network/MantlePacketWireTest.java
-src/test/java/slimeknights/mantle/network/PacketDispatchTest.java
-src/test/java/slimeknights/mantle/network/PacketRegistryTest.java
-src/test/java/slimeknights/mantle/network/TestPacketContext.java

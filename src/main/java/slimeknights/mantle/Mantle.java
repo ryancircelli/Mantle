@@ -4,13 +4,17 @@ import net.minecraft.Util;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import slimeknights.mantle.config.Config;
+import slimeknights.mantle.network.MantleNetwork;
 
 /**
  * Mantle
@@ -38,10 +42,12 @@ public class Mantle {
     // TODO(M-fluid): restore once slimeknights.mantle.fluid.transfer ports - FluidContainerTransferManager.INSTANCE.init();
     // TODO(M-datagen): restore once slimeknights.mantle.datagen ports - MantleTags.init();
 
-    // TODO(M-client): restore once slimeknights.mantle.client ports
-    // bus.addListener(EventPriority.NORMAL, false, FMLCommonSetupEvent.class, this::commonSetup);
-    // commonSetup used to call MantleNetwork.registerPackets(), MantleCommand.init(), OffhandCooldownTracker.init(),
-    // TagPreference.init(), LootTableInjector.init() - all still behind the frontier (network/command/util/recipe/loot)
+    // packets are registered in common setup as they always were; the channel itself is not built until
+    // RegisterPayloadHandlersEvent, which NeoForge fires after every setup event
+    modBus.addListener(EventPriority.NORMAL, false, FMLCommonSetupEvent.class, e -> MantleNetwork.registerPackets());
+    modBus.addListener(EventPriority.NORMAL, false, RegisterPayloadHandlersEvent.class, MantleNetwork.INSTANCE::registerPayloads);
+    // TODO(M-command/util/recipe/loot): common setup also called MantleCommand.init(), OffhandCooldownTracker.init(),
+    // TagPreference.init() and LootTableInjector.init() - all still behind the frontier
 
     // TODO(M-capability): restore once util/OffhandCooldownTracker ports (needs slimeknights.mantle.network)
     // bus.addListener(EventPriority.NORMAL, false, RegisterCapabilitiesEvent.class, this::registerCapabilities);

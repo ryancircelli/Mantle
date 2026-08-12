@@ -1,8 +1,8 @@
 package slimeknights.mantle.network;
 
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkDirection;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.network.packet.IPacket;
 import slimeknights.mantle.network.packet.PacketContext;
@@ -12,12 +12,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Tests that a channel's packet identities are unique and ordered, without building a channel */
 class PacketRegistryTest {
-  private static final ResourceLocation CHANNEL = new ResourceLocation("mantle", "network");
+  private static final ResourceLocation CHANNEL = ResourceLocation.fromNamespaceAndPath("mantle", "network");
 
   /** Packet with no state, only ever used to fill a registration */
   private static class EmptyPacket implements IPacket {
     @Override
-    public void encode(FriendlyByteBuf buffer) {}
+    public void encode(RegistryFriendlyByteBuf buffer) {}
 
     @Override
     public void handle(PacketContext context) {}
@@ -31,7 +31,7 @@ class PacketRegistryTest {
   }
 
   private static <P extends EmptyPacket> PacketRegistration<P> registrationOf(ResourceLocation id, Class<P> clazz) {
-    return new PacketRegistration<>(id, clazz, IPacket::encode, buffer -> null, IPacket::handle, NetworkDirection.PLAY_TO_CLIENT);
+    return new PacketRegistration<>(id, clazz, IPacket::encode, buffer -> null, IPacket::handle, PacketFlow.CLIENTBOUND);
   }
 
 
@@ -40,8 +40,8 @@ class PacketRegistryTest {
   @Test
   void register_duplicateIdFails() {
     PacketRegistry registry = new PacketRegistry(CHANNEL);
-    registry.register(registration(new ResourceLocation("mantle", "packet"), EmptyPacket.class));
-    assertThatThrownBy(() -> registry.register(registration(new ResourceLocation("mantle", "packet"), OtherPacket.class)))
+    registry.register(registration(ResourceLocation.fromNamespaceAndPath("mantle", "packet"), EmptyPacket.class));
+    assertThatThrownBy(() -> registry.register(registration(ResourceLocation.fromNamespaceAndPath("mantle", "packet"), OtherPacket.class)))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessageContaining("Duplicate packet ID mantle:packet")
       .hasMessageContaining(EmptyPacket.class.getName());
@@ -50,8 +50,8 @@ class PacketRegistryTest {
   @Test
   void register_duplicateClassFails() {
     PacketRegistry registry = new PacketRegistry(CHANNEL);
-    registry.register(registration(new ResourceLocation("mantle", "first"), EmptyPacket.class));
-    assertThatThrownBy(() -> registry.register(registration(new ResourceLocation("mantle", "second"), EmptyPacket.class)))
+    registry.register(registration(ResourceLocation.fromNamespaceAndPath("mantle", "first"), EmptyPacket.class));
+    assertThatThrownBy(() -> registry.register(registration(ResourceLocation.fromNamespaceAndPath("mantle", "second"), EmptyPacket.class)))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessageContaining("Duplicate packet class " + EmptyPacket.class.getName())
       .hasMessageContaining("mantle:first");
@@ -60,28 +60,22 @@ class PacketRegistryTest {
   @Test
   void register_differentIdsAndClassesPass() {
     PacketRegistry registry = new PacketRegistry(CHANNEL);
-    registry.register(registration(new ResourceLocation("mantle", "first"), EmptyPacket.class));
-    registry.register(registration(new ResourceLocation("mantle", "second"), OtherPacket.class));
+    registry.register(registration(ResourceLocation.fromNamespaceAndPath("mantle", "first"), EmptyPacket.class));
+    registry.register(registration(ResourceLocation.fromNamespaceAndPath("mantle", "second"), OtherPacket.class));
     assertThat(registry.size()).isEqualTo(2);
   }
 
 
-  /* Ordering, which is what actually reaches the wire */
-
-  @Test
-  void register_assignsIndexesInOrder() {
-    PacketRegistry registry = new PacketRegistry(CHANNEL);
-    assertThat(registry.register(registration(new ResourceLocation("mantle", "first"), EmptyPacket.class))).isEqualTo(0);
-    assertThat(registry.register(registration(new ResourceLocation("mantle", "second"), OtherPacket.class))).isEqualTo(1);
-    assertThat(registry.size()).isEqualTo(2);
-  }
+  /* Ordering, which no longer reaches the wire but still has to be deterministic */
 
   @Test
   void ids_keepRegistrationOrder() {
     PacketRegistry registry = new PacketRegistry(CHANNEL);
-    registry.register(registration(new ResourceLocation("mantle", "zebra"), EmptyPacket.class));
-    registry.register(registration(new ResourceLocation("mantle", "aardvark"), OtherPacket.class));
-    assertThat(registry.ids()).containsExactly(new ResourceLocation("mantle", "zebra"), new ResourceLocation("mantle", "aardvark"));
+    registry.register(registration(ResourceLocation.fromNamespaceAndPath("mantle", "zebra"), EmptyPacket.class));
+    registry.register(registration(ResourceLocation.fromNamespaceAndPath("mantle", "aardvark"), OtherPacket.class));
+    assertThat(registry.ids()).containsExactly(
+      ResourceLocation.fromNamespaceAndPath("mantle", "zebra"),
+      ResourceLocation.fromNamespaceAndPath("mantle", "aardvark"));
   }
 
 
@@ -90,7 +84,7 @@ class PacketRegistryTest {
   @Test
   void get_findsTheRegistration() {
     PacketRegistry registry = new PacketRegistry(CHANNEL);
-    ResourceLocation id = new ResourceLocation("mantle", "packet");
+    ResourceLocation id = ResourceLocation.fromNamespaceAndPath("mantle", "packet");
     PacketRegistration<EmptyPacket> registration = registrationOf(id, EmptyPacket.class);
     registry.register(registration);
     assertThat(registry.get(id)).isSameAs(registration);
@@ -98,10 +92,33 @@ class PacketRegistryTest {
   }
 
   @Test
+  void get_findsTheRegistrationByClass() {
+    // sending a packet looks it up by class, which is how an unregistered packet is caught before it is encoded
+    PacketRegistry registry = new PacketRegistry(CHANNEL);
+    PacketRegistration<EmptyPacket> registration = registrationOf(ResourceLocation.fromNamespaceAndPath("mantle", "packet"), EmptyPacket.class);
+    registry.register(registration);
+    assertThat(registry.get(EmptyPacket.class)).isSameAs(registration);
+    assertThat(registry.get(OtherPacket.class)).isNull();
+  }
+
+  @Test
   void get_missingIsNull() {
     PacketRegistry registry = new PacketRegistry(CHANNEL);
-    assertThat(registry.get(new ResourceLocation("mantle", "packet"))).isNull();
-    assertThat(registry.contains(new ResourceLocation("mantle", "packet"))).isFalse();
+    assertThat(registry.get(ResourceLocation.fromNamespaceAndPath("mantle", "packet"))).isNull();
+    assertThat(registry.contains(ResourceLocation.fromNamespaceAndPath("mantle", "packet"))).isFalse();
+  }
+
+
+  /* Payload identity */
+
+  @Test
+  void payloadType_carriesTheDeclaredId() {
+    // the identifier a call site declares is the name the packet answers to on the wire, with nothing in between
+    ResourceLocation id = ResourceLocation.fromNamespaceAndPath("mantle", "packet");
+    PacketRegistration<EmptyPacket> registration = registrationOf(id, EmptyPacket.class);
+    assertThat(registration.payloadType().id()).isEqualTo(id);
+    assertThat(registration.id()).isEqualTo(id);
+    assertThat(registration.wrap(new EmptyPacket()).type()).isEqualTo(registration.payloadType());
   }
 
 
@@ -109,8 +126,8 @@ class PacketRegistryTest {
 
   @Test
   void deriveId_usesTheChannelNamespace() {
-    PacketRegistry registry = new PacketRegistry(new ResourceLocation("othermod", "network"));
-    assertThat(registry.deriveId(EmptyPacket.class)).isEqualTo(new ResourceLocation("othermod", "empty"));
+    PacketRegistry registry = new PacketRegistry(ResourceLocation.fromNamespaceAndPath("othermod", "network"));
+    assertThat(registry.deriveId(EmptyPacket.class)).isEqualTo(ResourceLocation.fromNamespaceAndPath("othermod", "empty"));
   }
 
   @Test
@@ -147,7 +164,7 @@ class PacketRegistryTest {
   void defaultPath_anonymousClassFails() {
     IPacket anonymous = new IPacket() {
       @Override
-      public void encode(FriendlyByteBuf buffer) {}
+      public void encode(RegistryFriendlyByteBuf buffer) {}
 
       @Override
       public void handle(PacketContext context) {}
