@@ -219,6 +219,24 @@ public class OpsHelper {
   }
 
   /**
+   * Reads back a field already written into a record builder, the counterpart of looking up a key in the JSON object
+   * the gson path shares between fields.
+   * @param builder  Builder to read
+   * @param key      Key to look up
+   * @param <O>      Format of the builder
+   * @return  Value written for the key, or null if nothing wrote it or the builder does not share its fields
+   */
+  @Nullable
+  public static <O> O getWritten(RecordBuilder<O> builder, String key) {
+    if (builder instanceof SharedRecordBuilder) {
+      @SuppressWarnings("unchecked")  // safe, a shared builder which is a builder of this format is of this format
+      SharedRecordBuilder<O> shared = (SharedRecordBuilder<O>)builder;
+      return shared.get(key);
+    }
+    return null;
+  }
+
+  /**
    * Hands the fields collected by a builder from {@link #sharedBuilder(DynamicOps, RecordBuilder)} back to the
    * builder it was created around, undoing the wrap.
    * <p>
