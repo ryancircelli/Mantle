@@ -1,9 +1,10 @@
 package slimeknights.mantle.registration.adapter;
 
+import net.minecraft.core.Registry;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.fluids.ForgeFlowingFluid;
-import net.minecraftforge.fluids.ForgeFlowingFluid.Properties;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.neoforged.neoforge.fluids.BaseFlowingFluid;
+import net.neoforged.neoforge.fluids.BaseFlowingFluid.Properties;
+import net.neoforged.neoforge.registries.RegisterEvent.RegisterHelper;
 import slimeknights.mantle.registration.DelayedSupplier;
 import slimeknights.mantle.registration.FluidBuilder;
 
@@ -15,13 +16,8 @@ import java.util.function.Function;
 @SuppressWarnings("unused")
 public class FluidRegistryAdapter extends RegistryAdapter<Fluid> {
   /** @inheritDoc */
-  public FluidRegistryAdapter(IForgeRegistry<Fluid> registry) {
-    super(registry);
-  }
-
-  /** @inheritDoc */
-  public FluidRegistryAdapter(IForgeRegistry<Fluid> registry, String modId) {
-    super(registry, modId);
+  public FluidRegistryAdapter(Registry<Fluid> registry, RegisterHelper<Fluid> helper, String modId) {
+    super(registry, helper, modId);
   }
 
   /**
@@ -33,7 +29,7 @@ public class FluidRegistryAdapter extends RegistryAdapter<Fluid> {
    * @param <F>       Fluid type
    * @return  Still fluid instance
    */
-  public <F extends ForgeFlowingFluid> F register(FluidBuilder<?> builder, Function<Properties, F> still, Function<Properties,F> flowing, String name) {
+  public <F extends BaseFlowingFluid> F register(FluidBuilder<?> builder, Function<Properties, F> still, Function<Properties,F> flowing, String name) {
     // have to create still and flowing later, as the props need these suppliers
     DelayedSupplier<Fluid> stillDelayed = new DelayedSupplier<>();
     DelayedSupplier<Fluid> flowingDelayed = new DelayedSupplier<>();
@@ -58,7 +54,7 @@ public class FluidRegistryAdapter extends RegistryAdapter<Fluid> {
    * @param name     Fluid name
    * @return  Still fluid
    */
-  public ForgeFlowingFluid register(FluidBuilder<?> builder, String name) {
-    return register(builder, ForgeFlowingFluid.Source::new, ForgeFlowingFluid.Flowing::new, name);
+  public BaseFlowingFluid register(FluidBuilder<?> builder, String name) {
+    return register(builder, BaseFlowingFluid.Source::new, BaseFlowingFluid.Flowing::new, name);
   }
 }

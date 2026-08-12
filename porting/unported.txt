@@ -540,15 +540,8 @@ src/main/java/slimeknights/mantle/recipe/ingredient/SizedIngredient.java
 src/main/java/slimeknights/mantle/recipe/ingredient/package-info.java
 src/main/java/slimeknights/mantle/recipe/package-info.java
 src/main/java/slimeknights/mantle/registration/MantleRegistrations.java
-src/main/java/slimeknights/mantle/registration/adapter/BlockEntityTypeRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/adapter/BlockRegistryAdapter.java
-src/main/java/slimeknights/mantle/registration/adapter/ContainerTypeRegistryAdapter.java
-src/main/java/slimeknights/mantle/registration/adapter/EntityTypeRegistryAdapter.java
-src/main/java/slimeknights/mantle/registration/adapter/EnumRegistryAdapter.java
-src/main/java/slimeknights/mantle/registration/adapter/FluidRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/adapter/ItemRegistryAdapter.java
-src/main/java/slimeknights/mantle/registration/adapter/RegistryAdapter.java
-src/main/java/slimeknights/mantle/registration/adapter/package-info.java
 src/main/java/slimeknights/mantle/registration/deferred/BlockDeferredRegister.java
 src/main/java/slimeknights/mantle/registration/deferred/FluidDeferredRegister.java
 src/main/java/slimeknights/mantle/registration/object/FlowingFluidObject.java
