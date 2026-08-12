@@ -9,7 +9,8 @@ import slimeknights.mantle.block.entity.MantleHangingSignBlockEntity;
 
 public class MantleCeilingHangingSignBlock extends CeilingHangingSignBlock {
   public MantleCeilingHangingSignBlock(Properties props, WoodType type) {
-    super(props, type);
+    // 1.21 flipped the vanilla constructor's parameter order to (WoodType, Properties)
+    super(type, props);
   }
 
   @Override

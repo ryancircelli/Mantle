@@ -9,19 +9,8 @@
 # This file is deleted in the final PR of the port, when the frontier reaches zero.
 # Sorted, one repo-relative path per line. Blank lines and # comments are ignored.
 
-src/main/java/slimeknights/mantle/block/GaugeBlock.java
-src/main/java/slimeknights/mantle/block/IMultipartConnectedBlock.java
-src/main/java/slimeknights/mantle/block/InventoryBlock.java
-src/main/java/slimeknights/mantle/block/MantleCeilingHangingSignBlock.java
-src/main/java/slimeknights/mantle/block/MantleStandingSignBlock.java
-src/main/java/slimeknights/mantle/block/MantleWallHangingSignBlock.java
-src/main/java/slimeknights/mantle/block/MantleWallSignBlock.java
-src/main/java/slimeknights/mantle/block/RetexturedBlock.java
-src/main/java/slimeknights/mantle/block/StrippableLogBlock.java
 src/main/java/slimeknights/mantle/block/fluid/BurningLiquidBlock.java
 src/main/java/slimeknights/mantle/block/fluid/MobEffectLiquidBlock.java
-src/main/java/slimeknights/mantle/block/fluid/package-info.java
-src/main/java/slimeknights/mantle/block/package-info.java
 src/main/java/slimeknights/mantle/client/ClientEvents.java
 src/main/java/slimeknights/mantle/client/ExtraHeartRenderHandler.java
 src/main/java/slimeknights/mantle/client/ResourceColorManager.java
