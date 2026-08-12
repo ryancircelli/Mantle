@@ -1,10 +1,14 @@
 package slimeknights.mantle.client.book;
 
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.nbt.CompoundTag;
+import slimeknights.mantle.data.loadable.primitive.StringLoadable;
+import slimeknights.mantle.data.loadable.record.RecordLoadable;
+import slimeknights.mantle.item.data.DataEditor;
+import slimeknights.mantle.item.data.DataKey;
+import slimeknights.mantle.item.data.DataView;
 
 import javax.annotation.Nullable;
-import java.util.Objects;
+import java.util.function.Function;
 
 public class BookHelper {
 
@@ -12,6 +16,20 @@ public class BookHelper {
   public static final String BOOK_DATA_COMPOUND = "book";
 
   public static final String NBT_CURRENT_PAGE = "current_page";
+
+  /** Loadable for the {@value #BOOK_DATA_COMPOUND} compound nested inside {@value #BOOK_COMPOUND}, holding just the saved page */
+  private static final RecordLoadable<String> BOOK_DATA = RecordLoadable.create(
+    StringLoadable.DEFAULT.<String>requiredField(NBT_CURRENT_PAGE, Function.identity()),
+    Function.identity());
+
+  /**
+   * Key for a book's saved page, stored under the bare name {@value #BOOK_COMPOUND} rather than a namespaced one,
+   * and nested two deep ({@value #BOOK_COMPOUND} &rarr; {@value #BOOK_DATA_COMPOUND} &rarr; {@value #NBT_CURRENT_PAGE})
+   * to match the format written before this key existed.
+   */
+  public static final DataKey<String> CURRENT_PAGE = DataKey.ofLegacyName(BOOK_COMPOUND, RecordLoadable.create(
+    BOOK_DATA.<String>requiredField(BOOK_DATA_COMPOUND, Function.identity()),
+    Function.identity()));
 
   /**
    * Returns the current saved page on the book
@@ -21,17 +39,10 @@ public class BookHelper {
    * @return The current saved page
    */
   public static String getCurrentSavedPage(@Nullable ItemStack item) {
-    if (item != null) {
-      if (!item.isEmpty() && item.hasTag()) {
-        CompoundTag bookNBT = item.getOrCreateTag().getCompound(BOOK_COMPOUND).getCompound(BOOK_DATA_COMPOUND);
-
-        if (bookNBT.contains(NBT_CURRENT_PAGE, 8)) {
-          return bookNBT.getString(NBT_CURRENT_PAGE);
-        }
-      }
+    if (item == null || item.isEmpty()) {
+      return "";
     }
-
-    return "";
+    return DataView.of(item).getOrDefault(CURRENT_PAGE, "");
   }
 
   /**
@@ -41,15 +52,6 @@ public class BookHelper {
    * @param currentPage the current open page
    */
   public static void writeSavedPageToBook(ItemStack stack, String currentPage) {
-    CompoundTag compoundNBT = stack.getOrCreateTag();
-
-    CompoundTag mantleCompound = compoundNBT.getCompound(BOOK_COMPOUND);
-    CompoundTag bookCompound = compoundNBT.getCompound(BOOK_DATA_COMPOUND);
-
-    bookCompound.putString(NBT_CURRENT_PAGE, currentPage);
-
-    mantleCompound.put(BOOK_DATA_COMPOUND, bookCompound);
-    compoundNBT.put(BOOK_COMPOUND, mantleCompound);
-    stack.setTag(compoundNBT);
+    DataEditor.edit().set(CURRENT_PAGE, currentPage).apply(stack);
   }
 }
