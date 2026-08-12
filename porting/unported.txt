@@ -202,17 +202,6 @@ src/main/java/slimeknights/mantle/fluid/texture/FluidTexture.java
 src/main/java/slimeknights/mantle/fluid/texture/FluidTextureCameraProvider.java
 src/main/java/slimeknights/mantle/fluid/texture/FluidTextureManager.java
 src/main/java/slimeknights/mantle/fluid/texture/package-info.java
-src/main/java/slimeknights/mantle/inventory/BaseContainerMenu.java
-src/main/java/slimeknights/mantle/inventory/CustomResultSlot.java
-src/main/java/slimeknights/mantle/inventory/EmptyItemHandler.java
-src/main/java/slimeknights/mantle/inventory/IContainerCraftingCustom.java
-src/main/java/slimeknights/mantle/inventory/MultiModuleContainerMenu.java
-src/main/java/slimeknights/mantle/inventory/OutSlot.java
-src/main/java/slimeknights/mantle/inventory/RestrictedItemSlot.java
-src/main/java/slimeknights/mantle/inventory/SingleItemHandler.java
-src/main/java/slimeknights/mantle/inventory/SmartItemHandlerSlot.java
-src/main/java/slimeknights/mantle/inventory/WrapperSlot.java
-src/main/java/slimeknights/mantle/inventory/package-info.java
 src/main/java/slimeknights/mantle/item/AbstractBookItem.java
 src/main/java/slimeknights/mantle/item/ArmorTooltipItem.java
 src/main/java/slimeknights/mantle/item/BlockTooltipItem.java
