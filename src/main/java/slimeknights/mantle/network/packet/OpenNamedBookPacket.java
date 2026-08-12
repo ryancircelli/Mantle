@@ -4,13 +4,16 @@ import lombok.AllArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkEvent;
+import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.BookLoader;
 import slimeknights.mantle.client.book.data.BookData;
 import slimeknights.mantle.command.client.BookCommand;
 
 @AllArgsConstructor
-public class OpenNamedBookPacket implements IThreadsafePacket {
+public class OpenNamedBookPacket implements IPacket.Threadsafe {
+  /** Identifier of this packet on Mantle's channel */
+  public static final ResourceLocation ID = Mantle.getResource("open_named_book");
+
   private final ResourceLocation book;
 
   public OpenNamedBookPacket(FriendlyByteBuf buffer) {
@@ -23,7 +26,7 @@ public class OpenNamedBookPacket implements IThreadsafePacket {
   }
 
   @Override
-  public void handleThreadsafe(NetworkEvent.Context context) {
+  public void handleThreadsafe(PacketContext context) {
     BookData bookData = BookLoader.getBook(book);
     if(bookData != null) {
       bookData.openGui(Component.literal("Book"), "", null, null);
