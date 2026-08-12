@@ -539,10 +539,7 @@ src/main/java/slimeknights/mantle/recipe/ingredient/PotionIngredient.java
 src/main/java/slimeknights/mantle/recipe/ingredient/SizedIngredient.java
 src/main/java/slimeknights/mantle/recipe/ingredient/package-info.java
 src/main/java/slimeknights/mantle/recipe/package-info.java
-src/main/java/slimeknights/mantle/registration/DelayedSupplier.java
-src/main/java/slimeknights/mantle/registration/FluidBuilder.java
 src/main/java/slimeknights/mantle/registration/MantleRegistrations.java
-src/main/java/slimeknights/mantle/registration/RegistrationHelper.java
 src/main/java/slimeknights/mantle/registration/adapter/BlockEntityTypeRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/adapter/BlockRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/adapter/ContainerTypeRegistryAdapter.java
@@ -578,7 +575,6 @@ src/main/java/slimeknights/mantle/registration/object/MultiObject.java
 src/main/java/slimeknights/mantle/registration/object/WallBuildingBlockObject.java
 src/main/java/slimeknights/mantle/registration/object/WoodBlockObject.java
 src/main/java/slimeknights/mantle/registration/object/package-info.java
-src/main/java/slimeknights/mantle/registration/package-info.java
 src/main/java/slimeknights/mantle/util/CombatHelper.java
 src/main/java/slimeknights/mantle/util/JsonHelper.java
 src/main/java/slimeknights/mantle/util/OffhandCooldownTracker.java
