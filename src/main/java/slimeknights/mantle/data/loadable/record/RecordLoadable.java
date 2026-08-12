@@ -99,7 +99,18 @@ public interface RecordLoadable<T> extends Loadable<T> {
 
   /* Serializing */
 
-  /** Writes this object to json */
+  /**
+   * Writes this object to json.
+   * <p>
+   * A record writes its fields in declaration order into this single object, so by the time a field runs the object
+   * holds everything the fields before it wrote. A field is free to read and edit that: notably
+   * {@link DirectField} nests nothing and writes straight into the parent, and a field may complete an entry an
+   * earlier field wrote rather than write one of its own. Implementations must therefore keep to declaration order
+   * and must keep passing the same object down, on this and on every other serialization path.
+   * @param object  Object to serialize
+   * @param json    JSON object receiving the fields, already holding the fields written so far
+   * @throws RuntimeException  If unable to serialize the object
+   */
   void serialize(T object, JsonObject json);
 
   @Override
@@ -117,24 +128,26 @@ public interface RecordLoadable<T> extends Loadable<T> {
    */
   @Override
   default <O> O serialize(DynamicOps<O> ops, T object) {
-    return serialize(ops, object, ops.mapBuilder()).build(ops.empty()).getOrThrow(ErrorFactory.RUNTIME::create);
+    return serialize(ops, object, OpsHelper.sharedBuilder(ops)).build(ops.empty()).getOrThrow(ErrorFactory.RUNTIME::create);
   }
 
   /**
    * Writes this object to the passed record builder.
    * @param ops      Ops representing the desired format, notably {@link com.mojang.serialization.JsonOps} or {@link net.minecraft.nbt.NbtOps}.
    * @param object   Object to serialize
-   * @param builder  Builder receiving the fields of this object
+   * @param builder  Builder receiving the fields of this object. Implementations must run it through
+   *                 {@link OpsHelper#sharedBuilder(DynamicOps, RecordBuilder)} before handing it to their fields, as
+   *                 a plain record builder is write only and so cannot offer a field the view of the fields before it
+   *                 promised by {@link #serialize(Object, JsonObject)}.
    * @param <O>      Format of the builder
    * @return  Builder containing the fields, for chaining. Never assume the builder was modified in place, record builders are free to be immutable.
    * @throws RuntimeException  If unable to serialize the object. See {@link ErrorFactory}.
    * @implNote  The default implementation serializes to a {@link JsonObject} then copies that into the builder, see
-   *            {@link Loadable#serialize(DynamicOps, Object)} for the caveats of that conversion.
+   *            {@link Loadable#serialize(DynamicOps, Object)} for the caveats of that conversion. The object it
+   *            serializes into holds the fields written so far when the builder shares them.
    */
   default <O> RecordBuilder<O> serialize(DynamicOps<O> ops, T object, RecordBuilder<O> builder) {
-    JsonObject json = new JsonObject();
-    serialize(object, json);
-    return OpsHelper.addAll(ops, builder, json);
+    return OpsHelper.serializeJson(ops, builder, json -> serialize(object, json));
   }
 
 

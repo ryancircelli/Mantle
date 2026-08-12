@@ -47,7 +47,8 @@ public interface RecordField<T,P> {
 
   /**
    * Serializes the passed object into the JSON instance
-   * @param json    JSON instance
+   * @param json    JSON instance, already holding the fields declared before this one. This field may read and edit
+   *                them, see {@link RecordLoadable#serialize(Object, JsonObject)}.
    * @param parent  Object
    * @throws RuntimeException  If unable to save the element
    */
@@ -63,11 +64,12 @@ public interface RecordField<T,P> {
    * @throws RuntimeException  If unable to save the field. See {@link ErrorFactory}.
    * @implNote  The default implementation serializes to a {@link JsonObject} then copies that into the builder, losing
    *            anything gson cannot represent. Fields able to write a format directly should override this method.
+   *            The object it serializes into holds the fields written before this one, per the record serialization
+   *            contract on {@link RecordLoadable#serialize(Object, JsonObject)}; a field overriding this method reads
+   *            them from the builder instead, which offers no such view.
    */
   default <O> RecordBuilder<O> serialize(DynamicOps<O> ops, P parent, RecordBuilder<O> builder) {
-    JsonObject json = new JsonObject();
-    serialize(parent, json);
-    return OpsHelper.addAll(ops, builder, json);
+    return OpsHelper.serializeJson(ops, builder, json -> serialize(parent, json));
   }
 
   /**

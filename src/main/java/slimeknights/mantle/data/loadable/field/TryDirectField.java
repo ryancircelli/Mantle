@@ -42,9 +42,15 @@ public record TryDirectField<T,P>(Loadable<T> loadable, String key, Function<P,T
   }
 
   /** Checks if the serialized object conflicts with a key we know about */
-  private <O> boolean hasConflict(DynamicOps<O> ops, MapLike<O> serialized) {
+  private <O> boolean hasConflict(DynamicOps<O> ops, RecordBuilder<O> builder, MapLike<O> serialized) {
     if (serialized.get(key) != null) {
       return true;
+    }
+    // check all the keys written by the fields before us, if any of them exist then this conflicts
+    for (Pair<O,O> entry : serialized.entries().toList()) {
+      if (OpsHelper.getWritten(builder, OpsHelper.getString(ops, entry.getFirst(), key)) != null) {
+        return true;
+      }
     }
     // check additional conflicts passed into the field, for the sake of optional fields mostly
     for (String conflict : conflicts) {
@@ -59,9 +65,7 @@ public record TryDirectField<T,P>(Loadable<T> loadable, String key, Function<P,T
   public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, P parent, RecordBuilder<O> builder) {
     O element = loadable.serialize(ops, getter.apply(parent));
     Optional<MapLike<O>> serialized = ops.getMap(element).result();
-    // unlike the gson variant we cannot see the keys already written by earlier fields, as a record builder is write
-    // only. Conflicts with the declared key and the passed conflicts are all we can check.
-    if (serialized.isPresent() && !hasConflict(ops, serialized.get())) {
+    if (serialized.isPresent() && !hasConflict(ops, builder, serialized.get())) {
       for (Pair<O,O> entry : serialized.get().entries().toList()) {
         builder = builder.add(entry.getFirst(), entry.getSecond());
       }

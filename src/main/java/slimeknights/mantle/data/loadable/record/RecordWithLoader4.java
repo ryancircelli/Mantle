@@ -6,6 +6,7 @@ import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import com.mojang.datafixers.util.Function5;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.RecordField;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -49,6 +50,7 @@ record RecordWithLoader4<A,B,C,D,R>(
 
   @Override
   public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, R object, RecordBuilder<O> builder) {
+    builder = OpsHelper.sharedBuilder(ops, builder);
     builder = fieldA.serialize(ops, object, builder);
     builder = fieldB.serialize(ops, object, builder);
     builder = fieldC.serialize(ops, object, builder);
