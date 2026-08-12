@@ -28,8 +28,11 @@ repositories {
         name = "ParchmentMC"
         url = 'https://maven.parchmentmc.org'
     }
-    // JEI's maven (maven.blamejared.com) is intentionally absent: the JEI compat classes
-    // are unported and JEI is not a dependency of this build yet. It returns in M12.
+    maven {
+        // JEI
+        name = "BlameJared"
+        url = 'https://maven.blamejared.com'
+    }
     // If you have mod jar dependencies in ./libs, you can declare them as a repository like so:
     // flatDir {
     //     dir 'libs'
@@ -258,8 +261,12 @@ neoForge {
 
 dependencies {
     // Minecraft and NeoForge come from the neoForge block above, not from a dependency line.
-    // JEI: pending. No compileOnly/runtimeOnly JEI artifacts until M12 brings the compat
-    // classes back; nothing in the compiled source set references it today.
+    // JEI: compile against the API only (both halves - the plugin interfaces are common, the
+    // registration/rendering interfaces this module actually implements are neoforge-specific),
+    // and pull the runnable mod jar in only for local testing via the client run.
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'

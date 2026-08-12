@@ -9,14 +9,4 @@
 # This file is deleted in the final PR of the port, when the frontier reaches zero.
 # Sorted, one repo-relative path per line. Blank lines and # comments are ignored.
 
-src/main/java/slimeknights/mantle/datagen/MantleBlockTagProvider.java
-src/main/java/slimeknights/mantle/datagen/MantleMenuTagProvider.java
-src/main/java/slimeknights/mantle/datagen/package-info.java
-src/main/java/slimeknights/mantle/plugin/jei/JEIPlugin.java
-src/main/java/slimeknights/mantle/plugin/jei/MantleJEIConstants.java
-src/main/java/slimeknights/mantle/plugin/jei/RetexturableRecipeExtension.java
-src/main/java/slimeknights/mantle/plugin/jei/entity/EntityIngredientHelper.java
-src/main/java/slimeknights/mantle/plugin/jei/entity/EntityIngredientRenderer.java
-src/main/java/slimeknights/mantle/plugin/jei/entity/package-info.java
-src/main/java/slimeknights/mantle/plugin/jei/package-info.java
 src/main/java/slimeknights/mantle/util/CombatHelper.java

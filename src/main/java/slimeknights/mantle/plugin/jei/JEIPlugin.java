@@ -25,6 +25,13 @@ public class JEIPlugin implements IModPlugin {
     return Mantle.getResource("jei");
   }
 
+  /**
+   * @apiNote  The 4-arg {@code register} (no {@link com.mojang.serialization.Codec}) is deprecated for removal in JEI 19 in
+   *           favor of a codec-carrying overload; {@link slimeknights.mantle.recipe.ingredient.EntityIngredient.EntityInput}
+   *           only ever exists as a JEI display ingredient (never round-tripped through JSON), so there is no codec worth
+   *           writing for it yet. Left suppressed rather than manufacturing one.
+   */
+  @SuppressWarnings("removal")
   @Override
   public void registerIngredients(IModIngredientRegistration registration) {
     registration.register(MantleJEIConstants.ENTITY_TYPE, Collections.emptyList(), new EntityIngredientHelper(), new EntityIngredientRenderer(16));
@@ -32,7 +39,8 @@ public class JEIPlugin implements IModPlugin {
 
   @Override
   public void registerVanillaCategoryExtensions(IVanillaCategoryExtensionRegistration registry) {
-    registry.getCraftingCategory().addCategoryExtension(ShapedRetexturedRecipe.class, RetexturableRecipeExtension::new);
+    // JEI 19 registers one extension instance per recipe class rather than a factory per recipe; see RetexturableRecipeExtension's own note
+    registry.getCraftingCategory().addExtension(ShapedRetexturedRecipe.class, RetexturableRecipeExtension.INSTANCE);
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
