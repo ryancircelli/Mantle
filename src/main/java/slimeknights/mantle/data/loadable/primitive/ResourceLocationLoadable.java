@@ -43,8 +43,8 @@ public interface ResourceLocationLoadable<T> extends StringLoadable<T> {
    * @param key   Key that contained the text, used for exceptions only
    * @return  Parsed resource location
    * @throws com.google.gson.JsonSyntaxException  If the text is not a valid resource location
-   * @apiNote  This is {@link slimeknights.mantle.util.JsonHelper#parseResourceLocation(String, String)}, which cannot
-   *           be called from here as that class still depends on the unported network package.
+   * @apiNote  {@link slimeknights.mantle.util.JsonHelper#parseResourceLocation(String, String)} delegates here. The
+   *           logic lives on this side because that class depends on this package and not the other way around.
    */
   static ResourceLocation parse(String text, String key) {
     // basically the inside of ResourceLocation#tryParse, but with a JSON exception instead of being nullable

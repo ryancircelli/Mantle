@@ -6,10 +6,9 @@ import net.minecraft.resources.ResourceLocation;
 
 /**
  * Holder for Mantle's shared gson instance.
- * @apiNote  {@link #DEFAULT} is {@code slimeknights.mantle.util.JsonHelper#DEFAULT_GSON}, which cannot be called from
- *           the data packages while that class still depends on the unported network package. When network lands,
- *           JsonHelper's constant should become an alias of this one rather than a second instance; this is the same
- *           split M4 made for {@code ResourceLocationLoadable#parse}.
+ * @apiNote  This is the single instance behind {@link slimeknights.mantle.util.JsonHelper#DEFAULT_GSON}. It lives here
+ *           rather than there because the data packages need it and {@code JsonHelper} depends on them, so the constant
+ *           has to sit below both.
  */
 public class MantleGson {
   private MantleGson() {}

@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
+import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
@@ -148,16 +149,8 @@ public record BlockPropertiesPredicate(Block block, List<Matcher> properties) im
       }
       // if an array, set match
       if (element.isJsonArray()) {
-        // this is JsonHelper#parseList, inlined as that class still depends on the unported network package
-        JsonArray array = element.getAsJsonArray();
-        if (array.isEmpty()) {
-          throw new JsonSyntaxException(property.getName() + " must have at least 1 element");
-        }
-        List<T> values = new ArrayList<>(array.size());
-        for (int i = 0; i < array.size(); i++) {
-          String key = property.getName() + "[" + i + "]";
-          values.add(parseValue(property, GsonHelper.convertToString(array.get(i), key), JSON_EXCEPTION));
-        }
+        List<T> values = JsonHelper.parseList(element.getAsJsonArray(), property.getName(),
+          (value, key) -> parseValue(property, GsonHelper.convertToString(value, key), JSON_EXCEPTION));
         return new SetMatcher<>(property, Set.copyOf(values));
       }
       // object means range match

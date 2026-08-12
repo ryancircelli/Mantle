@@ -355,5 +355,4 @@ src/main/java/slimeknights/mantle/registration/deferred/FluidDeferredRegister.ja
 src/main/java/slimeknights/mantle/registration/object/FlowingFluidObject.java
 src/main/java/slimeknights/mantle/registration/object/FluidObject.java
 src/main/java/slimeknights/mantle/util/CombatHelper.java
-src/main/java/slimeknights/mantle/util/JsonHelper.java
 src/main/java/slimeknights/mantle/util/OffhandCooldownTracker.java
