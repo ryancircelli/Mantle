@@ -1,13 +1,14 @@
 package slimeknights.mantle.client;
 
 import com.google.gson.JsonElement;
+import com.mojang.serialization.DataResult;
 import com.google.gson.JsonObject;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import slimeknights.mantle.data.listener.ISafeManagerReloadListener;
 import slimeknights.mantle.util.JsonHelper;
 
@@ -55,12 +56,10 @@ public class ResourceColorManager implements ISafeManagerReloadListener {
         String fullPath = prefix + key;
         if (!colors.containsKey(fullPath)) {
           String text = element.getAsString();
-          TextColor color = TextColor.parseColor(text);
-          if (color == null) {
-            log.error("Color at key '{}' could not be parsed, got '{}'", fullPath, text);
-          } else {
-            colors.put(fullPath, color);
-          }
+          // parseColor returns a DataResult in 1.21 rather than a nullable colour
+          DataResult<TextColor> color = TextColor.parseColor(text);
+          color.ifSuccess(parsed -> colors.put(fullPath, parsed))
+               .ifError(error -> log.error("Color at key '{}' could not be parsed, got '{}': {}", fullPath, text, error.message()));
         }
         // treat nulls as comments
       } else if (!element.isJsonNull()) {

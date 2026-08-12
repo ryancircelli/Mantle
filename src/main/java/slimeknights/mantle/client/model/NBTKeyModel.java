@@ -16,17 +16,18 @@ import net.minecraft.client.resources.model.Material;
 import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.client.resources.model.UnbakedModel;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.client.model.CompositeModel;
-import net.minecraftforge.client.model.geometry.BlockGeometryBakingContext;
-import net.minecraftforge.client.model.geometry.IGeometryBakingContext;
-import net.minecraftforge.client.model.geometry.IGeometryLoader;
-import net.minecraftforge.client.model.geometry.IUnbakedGeometry;
+import net.minecraft.world.item.component.CustomData;
+import net.neoforged.neoforge.client.model.CompositeModel;
+import net.neoforged.neoforge.client.model.geometry.BlockGeometryBakingContext;
+import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
+import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
+import net.neoforged.neoforge.client.model.geometry.IUnbakedGeometry;
 import slimeknights.mantle.client.model.util.MantleItemLayerModel;
 import slimeknights.mantle.client.model.util.ModelTextureIteratable;
 import slimeknights.mantle.util.JsonHelper;
@@ -104,7 +105,7 @@ public class NBTKeyModel implements IUnbakedGeometry<NBTKeyModel> {
   }
 
   @Override
-  public BakedModel bake(IGeometryBakingContext owner, ModelBaker baker, Function<Material,TextureAtlasSprite> spriteGetter, ModelState modelTransform, ItemOverrides overrides, ResourceLocation modelLocation) {
+  public BakedModel bake(IGeometryBakingContext owner, ModelBaker baker, Function<Material,TextureAtlasSprite> spriteGetter, ModelState modelTransform, ItemOverrides overrides) {
     // setup transforms
     Transformation transform = MantleItemLayerModel.applyTransform(modelTransform, owner.getRootTransform()).getRotation();
     // build variants map
@@ -130,9 +131,12 @@ public class NBTKeyModel implements IUnbakedGeometry<NBTKeyModel> {
       // nbtKey is whatever key a model JSON names, not an entry this class owns: it may be a vanilla entry, another
       // mod's key, or a key claimed elsewhere in Mantle. A DataKey can only be claimed once per name, and this model
       // has to be able to read any name a pack author writes, so it stays on the raw tag rather than claiming one.
-      CompoundTag nbt = stack.getTag();
-      if (nbt != null && nbt.contains(nbtKey)) {
-        return variants.getOrDefault(nbt.getString(nbtKey), model);
+      // 1.21 moved a stack's free form tag into DataComponents.CUSTOM_DATA, which is the same compound the legacy
+      // names in that tag always lived in, so a model JSON written for 1.20 keeps naming the same entry.
+      CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+      if (data != null && data.contains(nbtKey)) {
+        //noinspection deprecation  getUnsafe is only unsafe for a caller which mutates the compound, which this never does
+        return variants.getOrDefault(data.getUnsafe().getString(nbtKey), model);
       }
       return model;
     }

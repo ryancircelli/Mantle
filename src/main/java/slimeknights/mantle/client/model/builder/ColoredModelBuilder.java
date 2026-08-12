@@ -2,9 +2,9 @@ package slimeknights.mantle.client.model.builder;
 
 import com.google.gson.JsonObject;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.client.model.generators.CustomLoaderBuilder;
-import net.minecraftforge.client.model.generators.ModelBuilder;
-import net.minecraftforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.client.model.generators.CustomLoaderBuilder;
+import net.neoforged.neoforge.client.model.generators.ModelBuilder;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.model.util.ColoredBlockModel.ColorData;
 
@@ -23,7 +23,9 @@ public class ColoredModelBuilder<T extends ModelBuilder<T>> extends CustomLoader
   }
 
   protected ColoredModelBuilder(ResourceLocation loaderId, T parent, ExistingFileHelper existingFileHelper) {
-    super(loaderId, parent, existingFileHelper);
+    // this loader and its subclasses all read vanilla's own "elements" list, so a model using them can still be read
+    // by the vanilla loader if the mod is missing, which is what NeoForge's allowInlineElements flag is asking about
+    super(loaderId, parent, existingFileHelper, true);
   }
 
   /** Adds a full color data for the next element */
