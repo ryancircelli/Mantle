@@ -1,11 +1,12 @@
 package slimeknights.mantle.data.loadable.primitive;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
 import slimeknights.mantle.data.loadable.array.FloatArrayLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -48,7 +49,12 @@ public record FloatLoadable(float min, float max) implements Loadable<Float> {
 
   @Override
   public Float convert(JsonElement element, String key, TypedMap context) {
-    return validate(GsonHelper.convertToFloat(element, key), key);
+    return convert(JsonOps.INSTANCE, element, key, context);
+  }
+
+  @Override
+  public <O> Float convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return validate(OpsHelper.getNumber(ops, input, key).floatValue(), key);
   }
 
   @Override
@@ -58,7 +64,12 @@ public record FloatLoadable(float min, float max) implements Loadable<Float> {
 
   @Override
   public JsonElement serialize(Float object) {
-    return new JsonPrimitive(validate(object, "Value"));
+    return serialize(JsonOps.INSTANCE, object);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, Float object) {
+    return ops.createFloat(validate(object, "Value"));
   }
 
   @Override
