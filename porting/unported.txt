@@ -200,7 +200,6 @@ src/main/java/slimeknights/mantle/command/package-info.java
 src/main/java/slimeknights/mantle/command/tags/ModifyTagCommand.java
 src/main/java/slimeknights/mantle/command/tags/package-info.java
 src/main/java/slimeknights/mantle/datagen/MantleBlockTagProvider.java
-src/main/java/slimeknights/mantle/datagen/MantleFluidTransferProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleMenuTagProvider.java
 src/main/java/slimeknights/mantle/datagen/package-info.java
 src/main/java/slimeknights/mantle/fluid/InvertedFluidType.java
