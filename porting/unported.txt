@@ -65,14 +65,6 @@ src/main/java/slimeknights/mantle/client/book/repository/BookRepository.java
 src/main/java/slimeknights/mantle/client/book/repository/DummyRepository.java
 src/main/java/slimeknights/mantle/client/book/repository/FileRepository.java
 src/main/java/slimeknights/mantle/client/book/repository/package-info.java
-src/main/java/slimeknights/mantle/client/book/structure/StructureInfo.java
-src/main/java/slimeknights/mantle/client/book/structure/level/FakeEntityGetter.java
-src/main/java/slimeknights/mantle/client/book/structure/level/FakeLevelData.java
-src/main/java/slimeknights/mantle/client/book/structure/level/TemplateChunk.java
-src/main/java/slimeknights/mantle/client/book/structure/level/TemplateChunkSource.java
-src/main/java/slimeknights/mantle/client/book/structure/level/TemplateLevel.java
-src/main/java/slimeknights/mantle/client/book/structure/level/package-info.java
-src/main/java/slimeknights/mantle/client/book/structure/package-info.java
 src/main/java/slimeknights/mantle/client/book/transformer/BookTransformer.java
 src/main/java/slimeknights/mantle/client/book/transformer/ContentGroupingSectionTransformer.java
 src/main/java/slimeknights/mantle/client/book/transformer/ContentListingSectionTransformer.java
@@ -80,14 +72,6 @@ src/main/java/slimeknights/mantle/client/book/transformer/IndexTransformer.java
 src/main/java/slimeknights/mantle/client/book/transformer/SectionTransformer.java
 src/main/java/slimeknights/mantle/client/book/transformer/package-info.java
 src/main/java/slimeknights/mantle/client/package-info.java
-src/main/java/slimeknights/mantle/client/screen/BackgroundContainerScreen.java
-src/main/java/slimeknights/mantle/client/screen/ElementScreen.java
-src/main/java/slimeknights/mantle/client/screen/ModuleScreen.java
-src/main/java/slimeknights/mantle/client/screen/MultiModuleScreen.java
-src/main/java/slimeknights/mantle/client/screen/ScalableElementScreen.java
-src/main/java/slimeknights/mantle/client/screen/SliderWidget.java
-src/main/java/slimeknights/mantle/client/screen/TabsWidget.java
-src/main/java/slimeknights/mantle/client/screen/Widget.java
 src/main/java/slimeknights/mantle/client/screen/book/ArrowButton.java
 src/main/java/slimeknights/mantle/client/screen/book/BookScreen.java
 src/main/java/slimeknights/mantle/client/screen/book/ILayerRenderFunction.java
@@ -111,7 +95,6 @@ src/main/java/slimeknights/mantle/client/screen/book/element/TextElement.java
 src/main/java/slimeknights/mantle/client/screen/book/element/TooltipElement.java
 src/main/java/slimeknights/mantle/client/screen/book/element/package-info.java
 src/main/java/slimeknights/mantle/client/screen/book/package-info.java
-src/main/java/slimeknights/mantle/client/screen/package-info.java
 src/main/java/slimeknights/mantle/command/DumpAllTagsCommand.java
 src/main/java/slimeknights/mantle/command/DumpLootModifiers.java
 src/main/java/slimeknights/mantle/command/DumpTagCommand.java
