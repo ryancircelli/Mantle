@@ -9,11 +9,6 @@
 # This file is deleted in the final PR of the port, when the frontier reaches zero.
 # Sorted, one repo-relative path per line. Blank lines and # comments are ignored.
 
-src/main/java/slimeknights/mantle/command/client/BookCommand.java
-src/main/java/slimeknights/mantle/command/client/ClearBookCacheCommand.java
-src/main/java/slimeknights/mantle/command/client/ClientSourcesCommand.java
-src/main/java/slimeknights/mantle/command/client/MantleClientCommand.java
-src/main/java/slimeknights/mantle/command/client/package-info.java
 src/main/java/slimeknights/mantle/datagen/MantleBlockTagProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleMenuTagProvider.java
 src/main/java/slimeknights/mantle/datagen/package-info.java
