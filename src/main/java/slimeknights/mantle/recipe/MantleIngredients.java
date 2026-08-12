@@ -8,6 +8,7 @@ import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.recipe.data.ItemNameIngredient;
 import slimeknights.mantle.recipe.helper.LoadableIngredientType;
 import slimeknights.mantle.recipe.ingredient.FluidContainerIngredient;
 import slimeknights.mantle.recipe.ingredient.PotionDisplayIngredient;
@@ -31,6 +32,9 @@ public class MantleIngredients {
   /** Ingredient matching an item containing a given fluid */
   public static final DeferredHolder<IngredientType<?>,IngredientType<FluidContainerIngredient>> FLUID_CONTAINER =
     INGREDIENTS.register("fluid_container", () -> LoadableIngredientType.of(FluidContainerIngredient.LOADABLE));
+  /** Ingredient matching an item by registry name, for a mod which may not be present */
+  public static final DeferredHolder<IngredientType<?>,IngredientType<ItemNameIngredient>> ITEM_NAME =
+    INGREDIENTS.register("item_name", () -> LoadableIngredientType.of(ItemNameIngredient.LOADABLE));
   /** Ingredient matching an item with a specific potion */
   public static final DeferredHolder<IngredientType<?>,IngredientType<PotionIngredient>> POTION =
     INGREDIENTS.register("potion", () -> LoadableIngredientType.of(PotionIngredient.LOADABLE));

@@ -264,17 +264,6 @@ src/main/java/slimeknights/mantle/plugin/jei/entity/EntityIngredientHelper.java
 src/main/java/slimeknights/mantle/plugin/jei/entity/EntityIngredientRenderer.java
 src/main/java/slimeknights/mantle/plugin/jei/entity/package-info.java
 src/main/java/slimeknights/mantle/plugin/jei/package-info.java
-src/main/java/slimeknights/mantle/recipe/cooking/CookingRecipeBuilder.java
-src/main/java/slimeknights/mantle/recipe/crafting/ShapedFallbackRecipeBuilder.java
-src/main/java/slimeknights/mantle/recipe/crafting/ShapedRetexturedRecipeBuilder.java
-src/main/java/slimeknights/mantle/recipe/data/AbstractRecipeBuilder.java
-src/main/java/slimeknights/mantle/recipe/data/ConsumerWrapperBuilder.java
-src/main/java/slimeknights/mantle/recipe/data/ICommonRecipeHelper.java
-src/main/java/slimeknights/mantle/recipe/data/IRecipeHelper.java
-src/main/java/slimeknights/mantle/recipe/data/ItemNameIngredient.java
-src/main/java/slimeknights/mantle/recipe/data/ItemNameOutput.java
-src/main/java/slimeknights/mantle/recipe/data/NBTNameIngredient.java
-src/main/java/slimeknights/mantle/recipe/data/package-info.java
 src/main/java/slimeknights/mantle/registration/MantleRegistrations.java
 src/main/java/slimeknights/mantle/registration/adapter/BlockRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/adapter/ItemRegistryAdapter.java

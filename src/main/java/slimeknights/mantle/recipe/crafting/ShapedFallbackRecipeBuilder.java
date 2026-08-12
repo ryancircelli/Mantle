@@ -1,21 +1,25 @@
 package slimeknights.mantle.recipe.crafting;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import slimeknights.mantle.recipe.MantleRecipes;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.ShapedRecipe;
+import net.neoforged.neoforge.common.conditions.ICondition;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.function.Consumer;
 
-/** Builder for a shaped recipe with fallbacks */
+/**
+ * Builder for a shaped recipe with fallbacks.
+ * @apiNote  1.20 wrapped the {@code FinishedRecipe} the parent builder produced. 1.21 has no such object, so the wrap
+ *           happens one level out: the parent saves into a {@link RecipeOutput} which swaps the recipe on its way past.
+ */
 @SuppressWarnings("unused")
 @RequiredArgsConstructor(staticName = "fallback")
 public class ShapedFallbackRecipeBuilder {
@@ -44,50 +48,34 @@ public class ShapedFallbackRecipeBuilder {
 
   /**
    * Builds the recipe using the output as the name
-   * @param consumer  Recipe consumer
+   * @param output  Recipe output
    */
-  public void build(Consumer<FinishedRecipe> consumer) {
-    base.save(base -> consumer.accept(new Result(base, alternatives)));
+  public void build(RecipeOutput output) {
+    base.save(wrap(output));
   }
 
   /**
    * Builds the recipe using the given ID
-   * @param consumer  Recipe consumer
-   * @param id        Recipe ID
+   * @param output  Recipe output
+   * @param id      Recipe ID
    */
-  public void build(Consumer<FinishedRecipe> consumer, ResourceLocation id) {
-    base.save(base -> consumer.accept(new Result(base, alternatives)), id);
+  public void build(RecipeOutput output, ResourceLocation id) {
+    base.save(wrap(output), id);
   }
 
-  private record Result(FinishedRecipe base, List<ResourceLocation> alternatives) implements FinishedRecipe {
-    @Override
-    public void serializeRecipeData(JsonObject json) {
-      base.serializeRecipeData(json);
-      json.add("alternatives", alternatives.stream()
-                                           .map(ResourceLocation::toString)
-                                           .collect(JsonArray::new, JsonArray::add, JsonArray::addAll));
-    }
+  /** Wraps the output so the shaped recipe the parent builds becomes a fallback recipe */
+  private RecipeOutput wrap(RecipeOutput output) {
+    List<ResourceLocation> alternatives = List.copyOf(this.alternatives);
+    return new RecipeOutput() {
+      @Override
+      public Advancement.Builder advancement() {
+        return output.advancement();
+      }
 
-    @Override
-    public RecipeSerializer<?> getType() {
-      return MantleRecipes.CRAFTING_SHAPED_FALLBACK.get();
-    }
-
-    @Override
-    public ResourceLocation getId() {
-      return base.getId();
-    }
-
-    @Nullable
-    @Override
-    public JsonObject serializeAdvancement() {
-      return base.serializeAdvancement();
-    }
-
-    @Nullable
-    @Override
-    public ResourceLocation getAdvancementId() {
-      return base.getAdvancementId();
-    }
+      @Override
+      public void accept(ResourceLocation id, Recipe<?> recipe, @Nullable AdvancementHolder advancement, ICondition... conditions) {
+        output.accept(id, new ShapedFallbackRecipe((ShapedRecipe)recipe, alternatives), advancement, conditions);
+      }
+    };
   }
 }

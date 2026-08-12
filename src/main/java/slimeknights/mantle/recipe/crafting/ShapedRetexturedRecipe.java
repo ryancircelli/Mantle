@@ -22,8 +22,6 @@ import net.minecraft.world.level.block.Blocks;
 import slimeknights.mantle.recipe.MantleRecipes;
 import slimeknights.mantle.util.RetexturedHelper;
 
-import javax.annotation.Nullable;
-
 /**
  * Recipe which sets the texture for a {@link slimeknights.mantle.block.RetexturedBlock} based on an ingredient input.
  * <p>
@@ -34,10 +32,7 @@ import javax.annotation.Nullable;
 // TODO 1.21: rework to be more like the ShapedMaterialsRecipe from Tinkers for more efficient network syncing
 @SuppressWarnings("WeakerAccess")
 public class ShapedRetexturedRecipe extends ShapedRecipe {
-  /** Key and pattern this recipe was read from, needed to write it back out. Null for a recipe read from the network. */
-  @Nullable
-  private final ShapedRecipePattern.Data data;
-  /** Symbol in {@link #data}'s key naming {@link #texture}. Unset for a recipe read from the network. */
+  /** Symbol in the recipe's key naming {@link #texture}. Unset for a recipe read from the network. */
   private final char textureKey;
   /** Ingredient used to determine the texture on the output */
   @Getter
@@ -46,9 +41,8 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
 
   /** Creates a new recipe using the passed parameters */
   protected ShapedRetexturedRecipe(String group, CraftingBookCategory category, ShapedRecipePattern pattern, ItemStack result, boolean showNotification,
-                                   @Nullable ShapedRecipePattern.Data data, char textureKey, Ingredient texture, boolean matchAll) {
+                                   char textureKey, Ingredient texture, boolean matchAll) {
     super(group, category, pattern, result, showNotification);
-    this.data = data;
     this.textureKey = textureKey;
     this.texture = texture;
     this.matchAll = matchAll;
@@ -60,8 +54,8 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
    * @param texture    Ingredient to use for the texture
    * @param matchAll   If true, all inputs must match for the recipe to match
    */
-  protected ShapedRetexturedRecipe(ShapedRecipe orig, Ingredient texture, boolean matchAll) {
-    this(orig.getGroup(), orig.category(), orig.pattern, orig.result, orig.showNotification(), null, '\0', texture, matchAll);
+  public ShapedRetexturedRecipe(ShapedRecipe orig, char textureKey, Ingredient texture, boolean matchAll) {
+    this(orig.getGroup(), orig.category(), orig.pattern, orig.result, orig.showNotification(), textureKey, texture, matchAll);
   }
 
   /**
@@ -140,7 +134,25 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
       Codec.BOOL.optionalFieldOf("match_all", Boolean.FALSE).forGetter(Raw::matchAll)
     ).apply(instance, Raw::new));
 
-    public static final MapCodec<ShapedRetexturedRecipe> CODEC = RAW_CODEC.flatXmap(Serializer::unpack, Serializer::pack);
+    /**
+     * Encoder half of {@link #CODEC}.
+     * @apiNote  Reading needs the key map, which only {@link ShapedRecipePattern.Data} exposes, while writing needs the
+     *           packed pattern the recipe actually holds. The two halves therefore use different views of the same two
+     *           JSON keys; its apply function is never called, as this is only ever used to encode.
+     */
+    private static final MapCodec<ShapedRetexturedRecipe> ENCODER = RecordCodecBuilder.mapCodec(instance -> instance.group(
+      Codec.STRING.optionalFieldOf("group", "").forGetter(ShapedRecipe::getGroup),
+      CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(ShapedRecipe::category),
+      ShapedRecipePattern.MAP_CODEC.forGetter(recipe -> recipe.pattern),
+      ItemStack.STRICT_CODEC.fieldOf("result").forGetter(recipe -> recipe.result),
+      Codec.BOOL.optionalFieldOf("show_notification", Boolean.TRUE).forGetter(ShapedRecipe::showNotification),
+      SYMBOL_CODEC.fieldOf("texture").forGetter(recipe -> recipe.textureKey),
+      Codec.BOOL.optionalFieldOf("match_all", Boolean.FALSE).forGetter(recipe -> recipe.matchAll)
+    ).apply(instance, (group, category, pattern, result, showNotification, texture, matchAll) -> {
+      throw new UnsupportedOperationException("Decode through CODEC, which reads the key map this cannot see");
+    }));
+
+    public static final MapCodec<ShapedRetexturedRecipe> CODEC = MapCodec.of(ENCODER, RAW_CODEC.flatMap(Serializer::unpack), () -> "ShapedRetexturedRecipe");
 
     public static final StreamCodec<RegistryFriendlyByteBuf,ShapedRetexturedRecipe> STREAM_CODEC = StreamCodec.of(
       (buffer, recipe) -> {
@@ -150,7 +162,7 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
       },
       buffer -> {
         ShapedRecipe base = RecipeSerializer.SHAPED_RECIPE.streamCodec().decode(buffer);
-        return new ShapedRetexturedRecipe(base, Ingredient.CONTENTS_STREAM_CODEC.decode(buffer), ByteBufCodecs.BOOL.decode(buffer));
+        return new ShapedRetexturedRecipe(base, '\0', Ingredient.CONTENTS_STREAM_CODEC.decode(buffer), ByteBufCodecs.BOOL.decode(buffer));
       });
 
     /** Resolves the texture symbol against the key and builds the pattern */
@@ -165,15 +177,7 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
       } catch (IllegalStateException e) {
         return DataResult.error(e::getMessage);
       }
-      return DataResult.success(new ShapedRetexturedRecipe(raw.group(), raw.category(), pattern, raw.result(), raw.showNotification(), raw.pattern(), raw.texture(), texture, raw.matchAll()));
-    }
-
-    /** Recovers the form the recipe was read from, which a recipe read from the network does not have */
-    private static DataResult<Raw> pack(ShapedRetexturedRecipe recipe) {
-      if (recipe.data == null) {
-        return DataResult.error(() -> "Cannot encode unpacked recipe");
-      }
-      return DataResult.success(new Raw(recipe.getGroup(), recipe.category(), recipe.data, recipe.result, recipe.showNotification(), recipe.textureKey, recipe.matchAll));
+      return DataResult.success(new ShapedRetexturedRecipe(raw.group(), raw.category(), pattern, raw.result(), raw.showNotification(), raw.texture(), texture, raw.matchAll()));
     }
 
     @Override

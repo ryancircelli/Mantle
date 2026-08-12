@@ -1,9 +1,10 @@
 package slimeknights.mantle.recipe.data;
 
-import net.minecraft.advancements.critereon.InventoryChangeTrigger.TriggerInstance;
+import net.minecraft.advancements.Criterion;
+import net.minecraft.advancements.critereon.InventoryChangeTrigger;
 import net.minecraft.advancements.critereon.ItemPredicate;
-import net.minecraft.data.recipes.FinishedRecipe;
 import net.minecraft.data.recipes.RecipeCategory;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.data.recipes.RecipeProvider;
 import net.minecraft.data.recipes.ShapedRecipeBuilder;
 import net.minecraft.data.recipes.ShapelessRecipeBuilder;
@@ -14,13 +15,11 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.common.Tags;
+import net.neoforged.neoforge.common.Tags;
 import slimeknights.mantle.registration.object.BuildingBlockObject;
 import slimeknights.mantle.registration.object.MetalItemObject;
 import slimeknights.mantle.registration.object.WallBuildingBlockObject;
 import slimeknights.mantle.registration.object.WoodBlockObject;
-
-import java.util.function.Consumer;
 
 /**
  * Crafting helper for common recipe types, like stairs, slabs, and packing.
@@ -31,7 +30,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
 
   /**
    * Registers a recipe packing a small item into a large one
-   * @param consumer   Recipe consumer
+   * @param consumer   Recipe output
    * @param category   Recipe category
    * @param large      Large item
    * @param small      Small item
@@ -39,7 +38,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
    * @param smallName  Small name
    * @param folder     Recipe folder
    */
-  default void packingRecipe(Consumer<FinishedRecipe> consumer, RecipeCategory category, String largeName, ItemLike large, String smallName, ItemLike small, String folder) {
+  default void packingRecipe(RecipeOutput consumer, RecipeCategory category, String largeName, ItemLike large, String smallName, ItemLike small, String folder) {
     // ingot to block
     ResourceLocation largeId = id(large);
     ShapedRecipeBuilder.shaped(category, large)
@@ -61,7 +60,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
 
   /**
    * Registers a recipe packing a small item into a large one
-   * @param consumer   Recipe consumer
+   * @param consumer   Recipe output
    * @param largeItem  Large item
    * @param smallItem  Small item
    * @param smallTag   Tag for small item
@@ -69,7 +68,7 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
    * @param smallName  Small name
    * @param folder     Recipe folder
    */
-  default void packingRecipe(Consumer<FinishedRecipe> consumer, RecipeCategory category, String largeName, ItemLike largeItem, String smallName, ItemLike smallItem, TagKey<Item> smallTag, String folder) {
+  default void packingRecipe(RecipeOutput consumer, RecipeCategory category, String largeName, ItemLike largeItem, String smallName, ItemLike smallItem, TagKey<Item> smallTag, String folder) {
     // ingot to block
     // note our item is in the center, any mod allowed around the edges
     ResourceLocation largeId = id(largeItem);
@@ -93,11 +92,11 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
 
   /**
    * Adds recipes to convert a block to ingot, ingot to block, and for nuggets
-   * @param consumer  Recipe consumer
+   * @param consumer  Recipe output
    * @param metal     Metal object
    * @param folder    Folder for recipes
    */
-  default void metalCrafting(Consumer<FinishedRecipe> consumer, MetalItemObject metal, String folder) {
+  default void metalCrafting(RecipeOutput consumer, MetalItemObject metal, String folder) {
     ItemLike ingot = metal.getIngot();
     packingRecipe(consumer, RecipeCategory.MISC, "block", metal.get(), "ingot", ingot, metal.getIngotTag(), folder);
     packingRecipe(consumer, RecipeCategory.MISC, "ingot", ingot, "nugget", metal.getNugget(), metal.getNuggetTag(), folder);
@@ -108,13 +107,13 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
 
   /**
    * Registers generic saveing block recipes for slabs and stairs
-   * @param consumer  Recipe consumer
+   * @param consumer  Recipe output
    * @param building  Building object instance
    */
-  default void slabStairsCrafting(Consumer<FinishedRecipe> consumer, BuildingBlockObject building, String folder, boolean addStonecutter) {
+  default void slabStairsCrafting(RecipeOutput consumer, BuildingBlockObject building, String folder, boolean addStonecutter) {
     Item item = building.asItem();
     ResourceLocation itemId = id(item);
-    TriggerInstance hasBlock = RecipeProvider.has(item);
+    Criterion<InventoryChangeTrigger.TriggerInstance> hasBlock = RecipeProvider.has(item);
     // slab
     ItemLike slab = building.getSlab();
     ShapedRecipeBuilder.shaped(RecipeCategory.BUILDING_BLOCKS, slab, 6)
@@ -148,15 +147,15 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
 
   /**
    * Registers generic saveing block recipes for slabs, stairs, and walls
-   * @param consumer  Recipe consumer
+   * @param consumer  Recipe output
    * @param building  Building object instance
    */
-  default void stairSlabWallCrafting(Consumer<FinishedRecipe> consumer, WallBuildingBlockObject building, String folder, boolean addStonecutter) {
+  default void stairSlabWallCrafting(RecipeOutput consumer, WallBuildingBlockObject building, String folder, boolean addStonecutter) {
     slabStairsCrafting(consumer, building, folder, addStonecutter);
     // wall
     Item item = building.asItem();
     ResourceLocation itemId = id(item);
-    TriggerInstance hasBlock = RecipeProvider.has(item);
+    Criterion<InventoryChangeTrigger.TriggerInstance> hasBlock = RecipeProvider.has(item);
     ItemLike wall = building.getWall();
     ShapedRecipeBuilder.shaped(RecipeCategory.BUILDING_BLOCKS, wall, 6)
                        .define('B', item)
@@ -176,12 +175,12 @@ public interface ICommonRecipeHelper extends IRecipeHelper {
 
   /**
    * Registers recipes relevant to wood
-   * @param consumer  Recipe consumer
+   * @param consumer  Recipe output
    * @param wood      Wood types
    * @param folder    Wood folder
    */
-  default void woodCrafting(Consumer<FinishedRecipe> consumer, WoodBlockObject wood, String folder) {
-    TriggerInstance hasPlanks = RecipeProvider.has(wood);
+  default void woodCrafting(RecipeOutput consumer, WoodBlockObject wood, String folder) {
+    Criterion<InventoryChangeTrigger.TriggerInstance> hasPlanks = RecipeProvider.has(wood);
 
     // planks
     ShapelessRecipeBuilder.shapeless(RecipeCategory.BUILDING_BLOCKS, wood, 4).requires(wood.getLogItemTag())
