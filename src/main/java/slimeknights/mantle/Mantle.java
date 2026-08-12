@@ -21,6 +21,7 @@ import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
 import slimeknights.mantle.loot.LootTableInjector;
 import slimeknights.mantle.loot.MantleLoot;
 import slimeknights.mantle.network.MantleNetwork;
+import slimeknights.mantle.util.OffhandCooldownTracker;
 import slimeknights.mantle.recipe.MantleIngredients;
 import slimeknights.mantle.recipe.MantleRecipes;
 import slimeknights.mantle.recipe.condition.MantleConditions;
@@ -63,12 +64,12 @@ public class Mantle {
     MantleRecipes.init(modBus);
     MantleRegistrations.init(modBus);
     MantleLoot.init(modBus);
+    OffhandCooldownTracker.init(modBus);
 
-    // TODO(M-capability): restore once util/OffhandCooldownTracker ports (needs slimeknights.mantle.network)
-    // bus.addListener(EventPriority.NORMAL, false, RegisterCapabilitiesEvent.class, this::registerCapabilities);
     // note: slimeknights.mantle.block.entity.InventoryBlockEntity#registerCapability is the RegisterCapabilitiesEvent
     // hook for item handler exposure - Mantle itself registers no InventoryBlockEntity subclass of its own, so there
     // is nothing to call it with yet; downstream mods call it once per block entity type from their own listener.
+    // OffhandCooldownTracker, 1.20's other capability, is a data attachment now and registers itself above.
 
     // TODO(M-datagen): restore once slimeknights.mantle.datagen ports
     // bus.addListener(EventPriority.NORMAL, false, GatherDataEvent.class, this::gatherData);

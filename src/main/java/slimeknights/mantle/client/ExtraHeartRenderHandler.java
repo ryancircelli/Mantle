@@ -2,31 +2,39 @@ package slimeknights.mantle.client;
 
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.systems.RenderSystem;
+import lombok.RequiredArgsConstructor;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.LayeredDraw;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.client.gui.overlay.ForgeGui;
-import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.config.Config;
 import slimeknights.mantle.config.Config.HeartRenderer;
 
 import java.util.Random;
 
-public class ExtraHeartRenderHandler {
-  private static final ResourceLocation ICON_HEARTS = new ResourceLocation(Mantle.modId, "textures/gui/extra_hearts.png");
-  private static final ResourceLocation ICON_VANILLA = Gui.GUI_ICONS_LOCATION;
+/**
+ * Replacement for vanilla's {@link VanillaGuiLayers#PLAYER_HEALTH} layer, drawing extra rows of coloured hearts past
+ * the first twenty health.
+ * <p>
+ * 1.20 did this by cancelling {@code RenderGuiOverlayEvent.Pre} and re-posting the {@code Post} half by hand. 1.21
+ * replaced the whole overlay system with {@link LayeredDraw.Layer}s, so this is a layer wrapped around vanilla's:
+ * wrapping rather than {@link RegisterGuiLayersEvent#replaceLayer replacing} it keeps the vanilla renderer reachable
+ * for {@link HeartRenderer#DISABLE}, which is a config value that can change without a game restart.
+ */
+@RequiredArgsConstructor
+public class ExtraHeartRenderHandler implements LayeredDraw.Layer {
+  private static final ResourceLocation ICON_HEARTS = Mantle.getResource("textures/gui/extra_hearts.png");
   /** Number of heart color variants */
   private static final int HEART_VARIANTS = 12;
   /** Number of heart color variants */
@@ -59,6 +67,9 @@ public class ExtraHeartRenderHandler {
   /** Background container for absorption hearts */
   private static final int ABSORPTION_CONTAINER = 234;
 
+  /** Vanilla's health layer, drawn when this renderer is disabled or has nothing to draw */
+  private final LayeredDraw.Layer vanilla;
+
   private final Minecraft mc = Minecraft.getInstance();
   /** Offsets for each heart position */
   private final int[] offsets = new int[20];
@@ -75,25 +86,39 @@ public class ExtraHeartRenderHandler {
 
   /* HUD */
 
-  /**
-   * Event listener
-   * @param event  Event instance
-   */
-  @SubscribeEvent(priority = EventPriority.LOW)
-  public void renderHealthbar(RenderGuiOverlayEvent.Pre event) {
-    HeartRenderer renderer = Config.HEART_RENDERER.get();
-    if (renderer == HeartRenderer.DISABLE || event.isCanceled() || event.getOverlay() != VanillaGuiOverlay.PLAYER_HEALTH.type()) {
-      return;
+  /** Registers this renderer around vanilla's health layer */
+  public static void registerGuiLayers(RegisterGuiLayersEvent event) {
+    event.wrapLayer(VanillaGuiLayers.PLAYER_HEALTH, ExtraHeartRenderHandler::new);
+  }
+
+  @Override
+  public void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
+    if (!renderHealthbar(graphics)) {
+      vanilla.render(graphics, deltaTracker);
     }
-    // ensure its visible
-    if (!(mc.gui instanceof ForgeGui gui) || mc.options.hideGui || !gui.shouldDrawSurvivalElements()) {
-      return;
+  }
+
+  /**
+   * Draws the health bar, if this renderer is enabled and there is a player to draw it for.
+   * @return  true if it drew, meaning vanilla's layer must not run
+   */
+  private boolean renderHealthbar(GuiGraphics graphics) {
+    HeartRenderer renderer = Config.HEART_RENDERER.get();
+    if (renderer == HeartRenderer.DISABLE) {
+      return false;
+    }
+    // ensure its visible. The gates wrapped around vanilla's layer are inside the layer we wrap, so they have to be
+    // repeated here; ForgeGui#shouldDrawSurvivalElements is MultiPlayerGameMode#canHurtPlayer now.
+    Gui gui = mc.gui;
+    if (mc.options.hideGui || mc.gameMode == null || !mc.gameMode.canHurtPlayer()) {
+      return false;
     }
     Entity renderViewEnity = this.mc.getCameraEntity();
     if (!(renderViewEnity instanceof Player player)) {
-      return;
+      return false;
     }
-    gui.setupOverlayRenderState(true, false);
+    // there is no setupOverlayRenderState to call any more; each vanilla layer blends for itself, so do the same
+    RenderSystem.enableBlend();
 
     this.mc.getProfiler().push("health");
 
@@ -173,9 +198,6 @@ public class ExtraHeartRenderHandler {
     // if we have less than a row of hearts, and at most 1 row of absorption,
     boolean compactAbsorption = showHearts < 10 && absorb <= 2 * (10 - showHearts);
 
-    // time to draw heart backgrounds
-    GuiGraphics graphics = event.getGuiGraphics();
-
     // render max health backgrounds
     int absorptionOffset = ROW_HEIGHT;
     setOffsets(0, showHearts, wiggle, regen);
@@ -220,18 +242,15 @@ public class ExtraHeartRenderHandler {
       renderHearts(graphics, left, top - absorptionOffset, absorpOffset, absorb, 10);
     }
 
-    // prepare the GUI for the event
-    RenderSystem.setShaderTexture(0, ICON_VANILLA);
+    // tell the layers below us how much room we took. leftHeight moved from ForgeGui onto vanilla's Gui in 1.21
     gui.leftHeight += ROW_HEIGHT;
     if (!compactAbsorption && absorb > 0) {
       gui.leftHeight += absorptionOffset;
     }
 
-    event.setCanceled(true);
     RenderSystem.disableBlend();
     this.mc.getProfiler().pop();
-    //noinspection UnstableApiUsage  I do what I want (more accurately, we override the renderer but want to let others still respond in post)
-    MinecraftForge.EVENT_BUS.post(new RenderGuiOverlayEvent.Post(event.getWindow(), graphics, event.getPartialTick(), VanillaGuiOverlay.PLAYER_HEALTH.type()));
+    return true;
   }
 
   /** Computes the color U offset for a given heart index */
