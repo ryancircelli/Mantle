@@ -286,14 +286,6 @@ src/main/java/slimeknights/mantle/recipe/data/ItemNameIngredient.java
 src/main/java/slimeknights/mantle/recipe/data/ItemNameOutput.java
 src/main/java/slimeknights/mantle/recipe/data/NBTNameIngredient.java
 src/main/java/slimeknights/mantle/recipe/data/package-info.java
-src/main/java/slimeknights/mantle/recipe/helper/LoadableIngredientSerializer.java
-src/main/java/slimeknights/mantle/recipe/ingredient/EntityIngredient.java
-src/main/java/slimeknights/mantle/recipe/ingredient/FluidContainerIngredient.java
-src/main/java/slimeknights/mantle/recipe/ingredient/ItemIngredient.java
-src/main/java/slimeknights/mantle/recipe/ingredient/PotionDisplayIngredient.java
-src/main/java/slimeknights/mantle/recipe/ingredient/PotionIngredient.java
-src/main/java/slimeknights/mantle/recipe/ingredient/SizedIngredient.java
-src/main/java/slimeknights/mantle/recipe/ingredient/package-info.java
 src/main/java/slimeknights/mantle/registration/MantleRegistrations.java
 src/main/java/slimeknights/mantle/registration/adapter/BlockRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/adapter/ItemRegistryAdapter.java

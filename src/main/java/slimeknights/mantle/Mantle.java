@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import slimeknights.mantle.config.Config;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
 import slimeknights.mantle.network.MantleNetwork;
+import slimeknights.mantle.recipe.MantleIngredients;
 import slimeknights.mantle.recipe.condition.MantleConditions;
 import slimeknights.mantle.recipe.helper.TagPreference;
 
@@ -54,6 +55,7 @@ public class Mantle {
     modBus.addListener(EventPriority.NORMAL, false, RegisterPayloadHandlersEvent.class, MantleNetwork.INSTANCE::registerPayloads);
     modBus.addListener(EventPriority.NORMAL, false, RegisterEvent.class, this::register);
     MantleConditions.init(modBus);
+    MantleIngredients.init(modBus);
 
     // TODO(M-capability): restore once util/OffhandCooldownTracker ports (needs slimeknights.mantle.network)
     // bus.addListener(EventPriority.NORMAL, false, RegisterCapabilitiesEvent.class, this::registerCapabilities);
