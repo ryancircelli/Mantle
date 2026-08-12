@@ -1,6 +1,9 @@
 package slimeknights.mantle.data.loadable.field;
 
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -27,7 +30,17 @@ public interface ContextField<T> extends RecordField<T,Object> {
   }
 
   @Override
+  default <O> T get(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+    return get(context, ErrorFactory.JSON_SYNTAX_ERROR);
+  }
+
+  @Override
   default void serialize(Object parent, JsonObject json) {}
+
+  @Override
+  default <O> RecordBuilder<O> serialize(DynamicOps<O> ops, Object parent, RecordBuilder<O> builder) {
+    return builder;
+  }
 
   @Override
   default T decode(FriendlyByteBuf buffer, TypedMap context) {

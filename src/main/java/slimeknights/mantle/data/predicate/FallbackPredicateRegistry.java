@@ -3,9 +3,11 @@ package slimeknights.mantle.data.predicate;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -79,6 +81,26 @@ public class FallbackPredicateRegistry<T,F> extends PredicateRegistry<T> {
     }
     // primary loader failed, try a fallback loader
     return new FallbackPredicate(this.fallback.deserialize(json, context));
+  }
+
+  /**
+   * {@inheritDoc}
+   * @implNote  Bridges through gson rather than reading the format directly, as choosing between the primary and the
+   *            fallback registry is written against JSON types. Restated explicitly because the record loadable
+   *            default would otherwise skip the compact form handled above.
+   */
+  @Override
+  public <O> IJsonPredicate<T> convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return convert(OpsHelper.toJson(ops, input), key, context);
+  }
+
+  /**
+   * {@inheritDoc}
+   * @implNote  Bridges through gson, see {@link #convert(DynamicOps, Object, String, TypedMap)}.
+   */
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, IJsonPredicate<T> src) {
+    return OpsHelper.fromJson(ops, serialize(src));
   }
 
   @SuppressWarnings("unchecked")

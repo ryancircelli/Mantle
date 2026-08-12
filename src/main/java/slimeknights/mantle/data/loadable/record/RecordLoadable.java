@@ -81,6 +81,18 @@ public interface RecordLoadable<T> extends Loadable<T> {
     return deserialize(GsonHelper.convertToJsonObject(element, key), context);
   }
 
+  /**
+   * {@inheritDoc}
+   * @implNote  Coerces the value into a map then hands it to {@link #deserialize(DynamicOps, MapLike, TypedMap)},
+   *            mirroring {@link #convert(JsonElement, String, TypedMap)}. An implementation overriding the gson
+   *            variant to accept something other than an object, such as a compact primitive form, must override this
+   *            one to match or the two entry points will disagree.
+   */
+  @Override
+  default <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return deserialize(ops, OpsHelper.getMap(ops, input, key), context);
+  }
+
 
   /* Serializing */
 
@@ -92,6 +104,17 @@ public interface RecordLoadable<T> extends Loadable<T> {
     JsonObject json = new JsonObject();
     serialize(object, json);
     return json;
+  }
+
+  /**
+   * {@inheritDoc}
+   * @implNote  Writes the fields into a fresh record builder, mirroring {@link #serialize(Object)}. An implementation
+   *            overriding the gson variant to write something other than an object, such as a compact primitive form,
+   *            must override this one to match or the two entry points will disagree.
+   */
+  @Override
+  default <O> O serialize(DynamicOps<O> ops, T object) {
+    return serialize(ops, object, ops.mapBuilder()).build(ops.empty()).getOrThrow(false, ErrorFactory.RUNTIME);
   }
 
   /**

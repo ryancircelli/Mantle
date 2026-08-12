@@ -2,6 +2,9 @@ package slimeknights.mantle.data.loadable.primitive;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.field.LoadableField;
@@ -78,12 +81,27 @@ public record EnumLoadable<E extends Enum<E>>(Class<E> enumClass, E[] allowedVal
       return loadable.getOrDefault(json, key, null, context);
     }
 
+    @Nullable
+    @Override
+    public <O> E get(DynamicOps<O> ops, MapLike<O> map, String key, TypedMap context) {
+      return loadable.getOrDefault(ops, map, key, null, context);
+    }
+
     @Override
     public void serialize(P parent, JsonObject json) {
       E value = getter.apply(parent);
       if (value != null) {
         json.add(key, loadable.serialize(value));
       }
+    }
+
+    @Override
+    public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, P parent, RecordBuilder<O> builder) {
+      E value = getter.apply(parent);
+      if (value != null) {
+        return builder.add(key, loadable.serialize(ops, value));
+      }
+      return builder;
     }
 
     @Nullable

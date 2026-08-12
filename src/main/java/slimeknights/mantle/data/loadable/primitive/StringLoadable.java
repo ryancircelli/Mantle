@@ -1,10 +1,11 @@
 package slimeknights.mantle.data.loadable.primitive;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
-import net.minecraft.util.GsonHelper;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.mapping.MapLoadable;
 import slimeknights.mantle.data.loadable.mapping.MappedLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -44,7 +45,12 @@ public interface StringLoadable<T> extends Loadable<T> {
 
   @Override
   default T convert(JsonElement element, String key, TypedMap context) {
-    return parseString(GsonHelper.convertToString(element, key), key, context);
+    return convert(JsonOps.INSTANCE, element, key, context);
+  }
+
+  @Override
+  default <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return parseString(OpsHelper.getString(ops, input, key), key, context);
   }
 
   /**
@@ -57,7 +63,12 @@ public interface StringLoadable<T> extends Loadable<T> {
 
   @Override
   default JsonElement serialize(T object) {
-    return new JsonPrimitive(getString(object));
+    return serialize(JsonOps.INSTANCE, object);
+  }
+
+  @Override
+  default <O> O serialize(DynamicOps<O> ops, T object) {
+    return ops.createString(getString(object));
   }
 
 

@@ -3,10 +3,14 @@ package slimeknights.mantle.data.loadable.mapping;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.MapLike;
 import io.netty.handler.codec.DecoderException;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.IAmLoadable;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.Streamable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -14,6 +18,7 @@ import slimeknights.mantle.util.typed.TypedMap;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /** Record loadable that chooses a loadable based on the presence of a key. */
@@ -151,19 +156,10 @@ public class EitherLoadable {
     }
 
 
-    /* JSON */
+    /* Parsing */
 
-    /** Deserializes from the given JSON object */
-    default T deserializeObject(JsonElement element, TypedMap context, String key) {
-      List<KeyOption<T>> keys = this.keys();
-      if (element.isJsonObject()) {
-        JsonObject json = element.getAsJsonObject();
-        for (KeyOption<T> option : keys) {
-          if (json.has(option.key)) {
-            return option.loadable.deserialize(json, context);
-          }
-        }
-      }
+    /** Creates the error thrown when no option matched */
+    default JsonSyntaxException noMatch(String key) {
       StringBuilder builder = new StringBuilder();
       builder.append("JSON at ").append(key).append(" must be one of: ");
       if (array() != null) {
@@ -173,9 +169,28 @@ public class EitherLoadable {
         builder.append("primitive, ");
       }
       builder.append("object with key from [")
-             .append(keys.stream().map(KeyOption::key).collect(Collectors.joining(", ")))
+             .append(keys().stream().map(KeyOption::key).collect(Collectors.joining(", ")))
              .append(']');
-      throw new JsonSyntaxException(builder.toString());
+      return new JsonSyntaxException(builder.toString());
+    }
+
+    /** Deserializes from the given map, choosing the option by the first present key */
+    default <O> T deserializeMap(DynamicOps<O> ops, MapLike<O> map, TypedMap context, String key) {
+      for (KeyOption<T> option : keys()) {
+        if (map.get(option.key) != null) {
+          return option.loadable.deserialize(ops, map, context);
+        }
+      }
+      throw noMatch(key);
+    }
+
+    /** Deserializes from the given value, requiring it to be a map */
+    default <O> T deserializeObject(DynamicOps<O> ops, O input, TypedMap context, String key) {
+      Optional<MapLike<O>> map = ops.getMap(input).result();
+      if (map.isPresent()) {
+        return deserializeMap(ops, map.get(), context, key);
+      }
+      throw noMatch(key);
     }
 
     /** Gets the loadable instance from the buffer */
@@ -221,14 +236,19 @@ public class EitherLoadable {
   private record Typing<T extends IAmLoadable>(List<Loadable<T>> network, List<KeyOption<T>> keys, @Nullable Loadable<? extends T> array, @Nullable Loadable<? extends T> primitive) implements EitherImpl<T> {
     @Override
     public T convert(JsonElement element, String key, TypedMap context) {
-      if (array != null && element.isJsonArray()) {
-        return array.convert(element, key, context);
+      return convert(JsonOps.INSTANCE, element, key, context);
+    }
+
+    @Override
+    public <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+      if (array != null && OpsHelper.isList(ops, input)) {
+        return array.convert(ops, input, key, context);
       }
-      if (primitive != null && element.isJsonPrimitive()) {
-        return primitive.convert(element, key, context);
+      if (primitive != null && !OpsHelper.isList(ops, input) && !OpsHelper.isMap(ops, input)) {
+        return primitive.convert(ops, input, key, context);
       }
       if (!keys.isEmpty()) {
-        return deserializeObject(element, context, key);
+        return deserializeObject(ops, input, context, key);
       }
       // no keys mean both array and primitive are valid, so that is the error
       throw new JsonSyntaxException("JSON at " + key + " must be one of: array, primitive");
@@ -238,6 +258,12 @@ public class EitherLoadable {
     @Override
     public JsonElement serialize(T object) {
       return ((Loadable<T>)object.loadable()).serialize(object);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <O> O serialize(DynamicOps<O> ops, T object) {
+      return ((Loadable<T>)object.loadable()).serialize(ops, object);
     }
 
     @Override
@@ -250,13 +276,24 @@ public class EitherLoadable {
   private record Record<T extends IAmLoadable.Record>(List<Loadable<T>> network, List<KeyOption<T>> keys) implements RecordLoadable<T>, EitherImpl<T> {
     @Override
     public T deserialize(JsonObject json, TypedMap context) {
-      return deserializeObject(json, context, "[root]");
+      return deserializeObject(JsonOps.INSTANCE, json, context, "[root]");
+    }
+
+    @Override
+    public <O> T deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+      return deserializeMap(ops, map, context, "[root]");
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public void serialize(T object, JsonObject json) {
       ((RecordLoadable<T>)object.loadable()).serialize(object, json);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <O> com.mojang.serialization.RecordBuilder<O> serialize(DynamicOps<O> ops, T object, com.mojang.serialization.RecordBuilder<O> builder) {
+      return ((RecordLoadable<T>)object.loadable()).serialize(ops, object, builder);
     }
 
     @Override

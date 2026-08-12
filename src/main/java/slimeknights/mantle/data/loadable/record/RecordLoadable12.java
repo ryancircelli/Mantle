@@ -1,6 +1,9 @@
 package slimeknights.mantle.data.loadable.record;
 
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import com.mojang.datafixers.util.Function12;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.field.RecordField;
@@ -42,6 +45,24 @@ record RecordLoadable12<A,B,C,D,E,F,G,H,I,J,K,L,R>(
   }
 
   @Override
+  public <O> R deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+    return constructor.apply(
+      fieldA.get(ops, map, context),
+      fieldB.get(ops, map, context),
+      fieldC.get(ops, map, context),
+      fieldD.get(ops, map, context),
+      fieldE.get(ops, map, context),
+      fieldF.get(ops, map, context),
+      fieldG.get(ops, map, context),
+      fieldH.get(ops, map, context),
+      fieldI.get(ops, map, context),
+      fieldJ.get(ops, map, context),
+      fieldK.get(ops, map, context),
+      fieldL.get(ops, map, context)
+    );
+  }
+
+  @Override
   public void serialize(R object, JsonObject json) {
     fieldA.serialize(object, json);
     fieldB.serialize(object, json);
@@ -55,6 +76,23 @@ record RecordLoadable12<A,B,C,D,E,F,G,H,I,J,K,L,R>(
     fieldJ.serialize(object, json);
     fieldK.serialize(object, json);
     fieldL.serialize(object, json);
+  }
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, R object, RecordBuilder<O> builder) {
+    builder = fieldA.serialize(ops, object, builder);
+    builder = fieldB.serialize(ops, object, builder);
+    builder = fieldC.serialize(ops, object, builder);
+    builder = fieldD.serialize(ops, object, builder);
+    builder = fieldE.serialize(ops, object, builder);
+    builder = fieldF.serialize(ops, object, builder);
+    builder = fieldG.serialize(ops, object, builder);
+    builder = fieldH.serialize(ops, object, builder);
+    builder = fieldI.serialize(ops, object, builder);
+    builder = fieldJ.serialize(ops, object, builder);
+    builder = fieldK.serialize(ops, object, builder);
+    builder = fieldL.serialize(ops, object, builder);
+    return builder;
   }
 
   @Override

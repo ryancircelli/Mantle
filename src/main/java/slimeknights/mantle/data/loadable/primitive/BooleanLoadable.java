@@ -1,16 +1,16 @@
 package slimeknights.mantle.data.loadable.primitive;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.GsonHelper;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
 import slimeknights.mantle.data.loadable.array.BooleanArrayLoadable;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Locale;
+import java.util.Optional;
 import java.util.function.Function;
 
 /** Loadable for a boolean */
@@ -21,13 +21,18 @@ public enum BooleanLoadable implements StringLoadable<Boolean> {
   public static final BooleanLoadable DEFAULT = INSTANCE;
 
   @Override
-  public Boolean convert(JsonElement element, String key, TypedMap context) {
-    return GsonHelper.convertToBoolean(element, key);
+  public <O> Boolean convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    // most formats have a native boolean, but fall back to the string form so the loadable stays usable as a map key
+    Optional<Boolean> value = ops.getBooleanValue(input).result();
+    if (value.isPresent()) {
+      return value.get();
+    }
+    return parseString(OpsHelper.getString(ops, input, key), key, context);
   }
 
   @Override
-  public JsonElement serialize(Boolean object) {
-    return new JsonPrimitive(object);
+  public <O> O serialize(DynamicOps<O> ops, Boolean object) {
+    return ops.createBoolean(object);
   }
 
   @Override

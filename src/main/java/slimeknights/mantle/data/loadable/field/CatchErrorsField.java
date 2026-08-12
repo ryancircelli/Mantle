@@ -2,6 +2,9 @@ package slimeknights.mantle.data.loadable.field;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.LegacyLoadable;
@@ -33,8 +36,23 @@ public record CatchErrorsField<T,P>(LoadableField<T,P> nested, @Nullable T value
   }
 
   @Override
+  public <O> T get(DynamicOps<O> ops, MapLike<O> map, String key, TypedMap context) {
+    try {
+      return nested.get(ops, map, key, context);
+    } catch (JsonParseException e) {
+      Mantle.logger.error("Caught error on field {}{}, substituting fallback value {}.", key(), LegacyLoadable.whileParsing(context), valueOnError, e);
+      return valueOnError;
+    }
+  }
+
+  @Override
   public void serialize(P parent, JsonObject json) {
     nested.serialize(parent, json);
+  }
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, P parent, RecordBuilder<O> builder) {
+    return nested.serialize(ops, parent, builder);
   }
 
   @Override
