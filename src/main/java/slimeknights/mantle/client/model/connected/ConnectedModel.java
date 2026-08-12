@@ -33,11 +33,12 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraftforge.client.model.data.ModelData;
-import net.minecraftforge.client.model.data.ModelProperty;
-import net.minecraftforge.client.model.geometry.IGeometryBakingContext;
-import net.minecraftforge.client.model.geometry.IGeometryLoader;
-import net.minecraftforge.client.model.geometry.IUnbakedGeometry;
+import net.neoforged.neoforge.client.model.data.ModelData;
+import net.neoforged.neoforge.client.model.data.ModelProperty;
+import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
+import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
+import net.neoforged.neoforge.client.model.geometry.IUnbakedGeometry;
+import org.apache.commons.lang3.mutable.MutableObject;
 import slimeknights.mantle.block.IMultipartConnectedBlock;
 import slimeknights.mantle.client.model.util.ColoredBlockModel;
 import slimeknights.mantle.client.model.util.DynamicBakedWrapper;
@@ -115,7 +116,7 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
           if (owner.hasMaterial(suffixedName)) {
             mat = owner.getMaterial(suffixedName);
           } else {
-            mat = new Material(atlas, new ResourceLocation(namespace, path + "/" + suffix));
+            mat = new Material(atlas, ResourceLocation.fromNamespaceAndPath(namespace, path + "/" + suffix));
           }
           // cache the texture name, we use it a lot in rebaking
           extraTextures.put(suffixedName, mat);
@@ -127,8 +128,8 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
   }
 
   @Override
-  public BakedModel bake(IGeometryBakingContext owner, ModelBaker baker, Function<Material,TextureAtlasSprite> spriteGetter, ModelState transform, ItemOverrides overrides, ResourceLocation location) {
-    BakedModel baked = model.bake(owner, baker, spriteGetter, transform, overrides, location);
+  public BakedModel bake(IGeometryBakingContext owner, ModelBaker baker, Function<Material,TextureAtlasSprite> spriteGetter, ModelState transform, ItemOverrides overrides) {
+    BakedModel baked = model.bake(owner, baker, spriteGetter, transform, overrides);
     return new Baked(this, new ExtraTextureContext(owner, extraTextures), transform, baked);
   }
 
@@ -306,21 +307,24 @@ public class ConnectedModel implements IUnbakedGeometry<ConnectedModel> {
 
           // follow the texture name back to the original name
           // if it never reaches a connected texture, skip
-          String connectedTexture = getConnectedName(original.texture);
+          String connectedTexture = getConnectedName(original.texture());
           if (!connectedTexture.isEmpty()) {
             // if empty string, we can keep the old face
-            String suffix = getTextureSuffix(connectedTexture, connections, getTransform(dir, original.uv));
+            String suffix = getTextureSuffix(connectedTexture, connections, getTransform(dir, original.uv()));
             if (!suffix.isEmpty()) {
               // suffix the texture
               String fullTexture = connectedTexture + suffix;
-              face = new BlockElementFace(original.cullForDirection, original.tintIndex, "#" + fullTexture, original.uv);
+              // BlockElementFace is a record with two extra components in 1.21: the face's own neoforge_data (resolved
+              // through the accessor, so passing it on preserves whatever the original face or its element declared)
+              // and a mutable back reference the new BlockElement below fills in for us.
+              face = new BlockElementFace(original.cullForDirection(), original.tintIndex(), "#" + fullTexture, original.uv(), original.faceData(), new MutableObject<>());
             }
           }
           // add the updated face
           partFaces.put(dir, face);
         }
-        // add the updated parts into a new model part
-        elements.add(new BlockElement(part.from, part.to, partFaces, part.rotation, part.shade));
+        // add the updated parts into a new model part, keeping the element's own neoforge_data
+        elements.add(new BlockElement(part.from, part.to, partFaces, part.rotation, part.shade, part.getFaceData()));
       }
 
       // bake the model
