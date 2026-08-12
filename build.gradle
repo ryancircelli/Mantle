@@ -203,14 +203,11 @@ neoForge {
         mappingsVersion = project.parchment_version
     }
 
-    // The shipped access transformer is still SRG-named (f_97726_ and friends), which
-    // NeoForge cannot load — 1.21 userdev and runtime are both Mojang-named. Clearing the
-    // collection overrides ModDevGradle's convention of picking up
-    // src/main/resources/META-INF/accesstransformer.cfg automatically.
-    // Re-enabled in the next PR with names translated; the cfg file itself is untouched.
-    accessTransformers {
-        files.setFrom()
-    }
+    // The shipped access transformer is now Mojang-named end to end (translated in M2), so
+    // ModDevGradle's convention of picking up src/main/resources/META-INF/accesstransformer.cfg
+    // is left alone. validateAccessTransformers fails the build if any line stops resolving,
+    // which is the safety net M2 wants and keeps the file honest for the rest of the port.
+    validateAccessTransformers = true
 
     mods {
         mantle {
