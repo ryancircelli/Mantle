@@ -34,8 +34,6 @@ src/main/java/slimeknights/mantle/block/package-info.java
 src/main/java/slimeknights/mantle/client/ClientEvents.java
 src/main/java/slimeknights/mantle/client/ExtraHeartRenderHandler.java
 src/main/java/slimeknights/mantle/client/ResourceColorManager.java
-src/main/java/slimeknights/mantle/client/SafeClientAccess.java
-src/main/java/slimeknights/mantle/client/TooltipKey.java
 src/main/java/slimeknights/mantle/client/book/BookLoader.java
 src/main/java/slimeknights/mantle/client/book/BookScreenOpener.java
 src/main/java/slimeknights/mantle/client/book/HTMLUtils.java
@@ -202,11 +200,8 @@ src/main/java/slimeknights/mantle/command/package-info.java
 src/main/java/slimeknights/mantle/command/tags/ModifyTagCommand.java
 src/main/java/slimeknights/mantle/command/tags/package-info.java
 src/main/java/slimeknights/mantle/datagen/MantleBlockTagProvider.java
-src/main/java/slimeknights/mantle/datagen/MantleFluidTagProvider.java
-src/main/java/slimeknights/mantle/datagen/MantleFluidTooltipProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleFluidTransferProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleMenuTagProvider.java
-src/main/java/slimeknights/mantle/datagen/MantleValues.java
 src/main/java/slimeknights/mantle/datagen/package-info.java
 src/main/java/slimeknights/mantle/fluid/InvertedFluidType.java
 src/main/java/slimeknights/mantle/fluid/TextureFluidType.java
@@ -217,11 +212,6 @@ src/main/java/slimeknights/mantle/fluid/texture/FluidTexture.java
 src/main/java/slimeknights/mantle/fluid/texture/FluidTextureCameraProvider.java
 src/main/java/slimeknights/mantle/fluid/texture/FluidTextureManager.java
 src/main/java/slimeknights/mantle/fluid/texture/package-info.java
-src/main/java/slimeknights/mantle/fluid/tooltip/AbstractFluidTooltipProvider.java
-src/main/java/slimeknights/mantle/fluid/tooltip/FluidTooltipHandler.java
-src/main/java/slimeknights/mantle/fluid/tooltip/FluidUnit.java
-src/main/java/slimeknights/mantle/fluid/tooltip/FluidUnitList.java
-src/main/java/slimeknights/mantle/fluid/tooltip/package-info.java
 src/main/java/slimeknights/mantle/inventory/BaseContainerMenu.java
 src/main/java/slimeknights/mantle/inventory/CustomResultSlot.java
 src/main/java/slimeknights/mantle/inventory/EmptyItemHandler.java
