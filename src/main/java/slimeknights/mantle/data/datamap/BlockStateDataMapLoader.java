@@ -15,8 +15,13 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.gson.MantleGson;
 import slimeknights.mantle.data.loadable.Loadable;
-import slimeknights.mantle.util.JsonHelper;
+import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.data.loadable.field.ContextKey;
+
+import slimeknights.mantle.util.typed.TypedMap;
+import slimeknights.mantle.util.typed.TypedMapBuilder;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -38,7 +43,7 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
   private Map<BlockState,T> dataMap = Map.of();
 
   public BlockStateDataMapLoader(String name, String folder, Loadable<T> dataLoader) {
-    super(JsonHelper.DEFAULT_GSON, folder);
+    super(MantleGson.DEFAULT, folder);
     this.name = name;
     this.folder = folder;
     this.dataLoader = dataLoader;
@@ -62,6 +67,9 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
     Map<ResourceLocation,T> locationMap = new HashMap<>();
 
     Loadable<T> dataLoader = prepareLoader(jsons);
+    // supplies the registries to any loadable needing them, see OpsHelper#withRegistries. ContextAwareReloadListener
+    // fills these in on a server reload; a client resource pack listener gets RegistryAccess.EMPTY instead.
+    TypedMap context = TypedMapBuilder.builder().put(ContextKey.REGISTRY_ACCESS, getRegistryLookup()).build();
 
     // parse through block registry, don't care about non-block entries
     for (Entry<ResourceKey<Block>,Block> entry : BuiltInRegistries.BLOCK.entrySet()) {
@@ -85,19 +93,19 @@ public class BlockStateDataMapLoader<T> extends SimpleJsonResourceReloadListener
             // if its a string, treat it as a location to another JSON
             T data;
             if (variantElement.isJsonPrimitive()) {
-              ResourceLocation parent = JsonHelper.convertToResourceLocation(variantElement, key);
+              ResourceLocation parent = Loadables.RESOURCE_LOCATION.convert(variantElement, key);
               data = locationMap.get(parent);
               if (data == null) {
                 JsonElement parentElement = jsons.get(parent);
                 if (parentElement == null) {
                   throw new JsonSyntaxException("Missing parent at " + parent + " for " + name + ", used in " + location);
                 }
-                data = dataLoader.convert(parentElement, parent.toString());
+                data = dataLoader.convert(parentElement, parent.toString(), context);
                 locationMap.put(parent, data);
               }
             } else {
               // otherwise parse the object directly
-              data = dataLoader.convert(variantElement, key);
+              data = dataLoader.convert(variantElement, key, context);
             }
             // upload the value into the map
             T effectivelyFinal = data;
