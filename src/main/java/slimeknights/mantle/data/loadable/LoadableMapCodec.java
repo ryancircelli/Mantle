@@ -80,11 +80,14 @@ public final class LoadableMapCodec<T> extends MapCodec<T> {
     if (cannotCompress(ops)) {
       return prefix.withErrorsFrom(DataResult.error(() -> NO_KEYS));
     }
+    // the loadable wants a builder its fields can read back, but a codec grouping several encoders hands each of them
+    // the same builder and expects that instance back, so the one we substitute has to be flushed before returning
+    RecordBuilder<O> shared = OpsHelper.sharedBuilder(ops, prefix);
     DataResult<RecordBuilder<O>> result = ErrorFactory.catching(
-      () -> loadable.serialize(ops, input, prefix),
+      () -> loadable.serialize(ops, input, shared),
       e -> Mantle.logger.warn("Unable to encode {}", loadable, e));
     // on failure the builder is left as we found it, carrying the error so the eventual build fails
-    return result.result().orElseGet(() -> prefix.withErrorsFrom(result));
+    return result.result().map(built -> OpsHelper.flush(built, prefix)).orElseGet(() -> prefix.withErrorsFrom(result));
   }
 
   @Override
