@@ -306,13 +306,6 @@ src/main/java/slimeknights/mantle/item/EdibleItem.java
 src/main/java/slimeknights/mantle/item/ILecternBookItem.java
 src/main/java/slimeknights/mantle/item/LecternBookItem.java
 src/main/java/slimeknights/mantle/item/TooltipItem.java
-src/main/java/slimeknights/mantle/item/data/BufferedDataEditor.java
-src/main/java/slimeknights/mantle/item/data/DataEditor.java
-src/main/java/slimeknights/mantle/item/data/DataKey.java
-src/main/java/slimeknights/mantle/item/data/DataView.java
-src/main/java/slimeknights/mantle/item/data/StackDataView.java
-src/main/java/slimeknights/mantle/item/data/TagDataView.java
-src/main/java/slimeknights/mantle/item/data/package-info.java
 src/main/java/slimeknights/mantle/item/package-info.java
 src/main/java/slimeknights/mantle/loot/AbstractLootModifierBuilder.java
 src/main/java/slimeknights/mantle/loot/AbstractLootTableInjectionProvider.java
