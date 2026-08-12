@@ -1,13 +1,17 @@
 package slimeknights.mantle.network.packet;
 
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent.Context;
+import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.BookHelper;
 
 /** Packet to update the page in a book in the players inventory */
-public record UpdateInventoryPagePacket(int slot, String page) implements IThreadsafePacket {
+public record UpdateInventoryPagePacket(int slot, String page) implements IPacket.Threadsafe {
+  /** Identifier of this packet on Mantle's channel */
+  public static final ResourceLocation ID = Mantle.getResource("update_inventory_page");
+
   public UpdateInventoryPagePacket(FriendlyByteBuf buffer) {
     this(buffer.readVarInt(), buffer.readUtf(100));
   }
@@ -19,7 +23,7 @@ public record UpdateInventoryPagePacket(int slot, String page) implements IThrea
   }
 
   @Override
-  public void handleThreadsafe(Context context) {
+  public void handleThreadsafe(PacketContext context) {
     Player player = context.getSender();
     if (player != null && this.page != null && slot >= 0) {
       ItemStack stack = player.getInventory().getItem(slot);

@@ -3,15 +3,19 @@ package slimeknights.mantle.network.packet;
 import lombok.AllArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent.Context;
+import slimeknights.mantle.Mantle;
 import slimeknights.mantle.item.ILecternBookItem;
 
 /**
  * Packet to open a book on a lectern
  */
 @AllArgsConstructor
-public class OpenLecternBookPacket implements IThreadsafePacket {
+public class OpenLecternBookPacket implements IPacket.Threadsafe {
+  /** Identifier of this packet on Mantle's channel */
+  public static final ResourceLocation ID = Mantle.getResource("open_lectern_book");
+
   private final BlockPos pos;
   private final ItemStack book;
 
@@ -27,7 +31,7 @@ public class OpenLecternBookPacket implements IThreadsafePacket {
   }
 
   @Override
-  public void handleThreadsafe(Context context) {
+  public void handleThreadsafe(PacketContext context) {
     if (book.getItem() instanceof ILecternBookItem) {
       ((ILecternBookItem)book.getItem()).openLecternScreenClient(pos, book);
     }

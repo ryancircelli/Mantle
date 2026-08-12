@@ -3,6 +3,7 @@ package slimeknights.mantle.network.packet;
 import lombok.AllArgsConstructor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
@@ -10,13 +11,16 @@ import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.LecternBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.network.NetworkEvent.Context;
+import slimeknights.mantle.Mantle;
 
 /**
  * Packet to drop the book as item from lectern
  */
 @AllArgsConstructor
-public class DropLecternBookPacket implements IThreadsafePacket {
+public class DropLecternBookPacket implements IPacket.Threadsafe {
+  /** Identifier of this packet on Mantle's channel */
+  public static final ResourceLocation ID = Mantle.getResource("drop_lectern_book");
+
   private final BlockPos pos;
 
   public DropLecternBookPacket(FriendlyByteBuf buffer) {
@@ -30,7 +34,7 @@ public class DropLecternBookPacket implements IThreadsafePacket {
 
   @SuppressWarnings("deprecation")
   @Override
-  public void handleThreadsafe(Context context) {
+  public void handleThreadsafe(PacketContext context) {
     ServerPlayer player = context.getSender();
     if(player == null) {
       return;

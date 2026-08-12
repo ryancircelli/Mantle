@@ -2,10 +2,12 @@ package slimeknights.mantle.fluid.transfer;
 
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.network.NetworkEvent.Context;
 import net.minecraftforge.registries.ForgeRegistries;
-import slimeknights.mantle.network.packet.IThreadsafePacket;
+import slimeknights.mantle.Mantle;
+import slimeknights.mantle.network.packet.IPacket;
+import slimeknights.mantle.network.packet.PacketContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +15,10 @@ import java.util.Set;
 
 /** Packet to sync fluid container transfer */
 @RequiredArgsConstructor
-public class FluidContainerTransferPacket implements IThreadsafePacket {
+public class FluidContainerTransferPacket implements IPacket.Threadsafe {
+  /** Identifier of this packet on Mantle's channel */
+  public static final ResourceLocation ID = Mantle.getResource("fluid_container_transfer");
+
   private final Set<Item> items;
 
   public FluidContainerTransferPacket(FriendlyByteBuf buffer) {
@@ -34,7 +39,7 @@ public class FluidContainerTransferPacket implements IThreadsafePacket {
   }
 
   @Override
-  public void handleThreadsafe(Context context) {
+  public void handleThreadsafe(PacketContext context) {
     FluidContainerTransferManager.INSTANCE.setContainerItems(items);
   }
 }
