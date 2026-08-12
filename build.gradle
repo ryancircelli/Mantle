@@ -10,28 +10,26 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0,6.0.37]'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
-    id 'io.freefair.lombok' version '8.6'
+    // ModDevGradle replaces ForgeGradle 6 + Librarian for the 1.21.1 / NeoForge port.
+    id 'net.neoforged.moddev' version '2.0.143'
+    id 'io.freefair.lombok' version '8.14.4'
 }
 
 repositories {
     mavenCentral()
     maven {
         // Our maven
-        name "Prog's Maven"
-        url 'https://dvs1.progwml6.com/files/maven'
+        name = "Prog's Maven"
+        url = 'https://dvs1.progwml6.com/files/maven'
     }
     maven {
-        // JEI
-        name = "Jared's maven"
-        url = "https://maven.blamejared.com/"
+        // Parchment; also mirrored on the NeoForged maven that ModDevGradle adds itself,
+        // declared here so the mappings source is obvious from the build script.
+        name = "ParchmentMC"
+        url = 'https://maven.parchmentmc.org'
     }
-    maven {
-        // for Yarn2MCP
-        name "yarn2mcp"
-        url "https://maven.tterrag.com/"
-    }
+    // JEI's maven (maven.blamejared.com) is intentionally absent: the JEI compat classes
+    // are unported and JEI is not a dependency of this build yet. It returns in M12.
     // If you have mod jar dependencies in ./libs, you can declare them as a repository like so:
     // flatDir {
     //     dir 'libs'
@@ -42,7 +40,7 @@ group = 'slimeknights.mantle'
 base {
     archivesName = 'Mantle'
 }
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 // sets version to the slimeKnights version format
 task buildInfo {
@@ -76,74 +74,190 @@ if (System.getenv().ARTIFACT_VERSION != null) {
 version = "${minecraft_version}-${artifact_version}"
 println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}, Version: ${version}"
 
+/*
+ * ---------------------------------------------------------------------------
+ * Porting frontier
+ * ---------------------------------------------------------------------------
+ * porting/unported.txt and porting/unported-test.txt are the ledger of source
+ * files that have not been ported to 1.21.1 yet. Everything listed is kept out
+ * of its source set, so the build compiles only what has actually crossed over.
+ *
+ * The ledger is self-liquidating: a port PR deletes lines from it, never adds
+ * them, and the last PR of the port deletes the files outright. checkPortingFrontier
+ * below is what makes that a rule rather than an intention.
+ */
+ext.frontiers = [
+        [name: 'main', ledger: file('porting/unported.txt'), root: 'src/main/java'],
+        [name: 'test', ledger: file('porting/unported-test.txt'), root: 'src/test/java'],
+]
+
+// Reads a ledger into repo-relative paths, dropping blank lines and # comments.
+ext.readFrontier = { File ledger ->
+    if (!ledger.exists()) {
+        return [] as List<String>
+    }
+    return ledger.readLines('UTF-8')
+            *.trim()
+            .findAll { !it.isEmpty() && !it.startsWith('#') }
+}
+
 sourceSets {
     main {
+        java {
+            // Ant-style excludes are relative to the source directory, so drop the root prefix.
+            readFrontier(frontiers[0].ledger).each { exclude it.substring(frontiers[0].root.length() + 1) }
+        }
         resources {
             srcDirs "src/generated/resources"
             //But exclude the cache of the generated data from what gets built
             exclude '.cache'
         }
     }
-}
-
-minecraft {
-    mappings channel: 'parchment', version: "${parchment_version}-${minecraft_version}"
-
-    enableIdeaPrepareRuns = true
-    copyIdeResources = true
-
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
-    runs {
-
-        // applies to all the run configs below
-        configureEach {
-            workingDirectory project.file('run')
-
-            // Recommended logging data for a userdev environment
-            // The markers can be added/remove as needed separated by commas.
-            // "SCAN": For mods scan.
-            // "REGISTRIES": For firing of registry events.
-            // "REGISTRYDUMP": For getting the contents of all registries.
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP,CORE'
-
-            // Recommended logging level for the console
-            // You can set various levels here.
-            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                mantle {
-                    source sourceSets.main
-                }
-            }
-        }
-
-        client {
-        }
-
-        server {
-            args '--nogui'
-        }
-
-        data {
-            args '--mod', 'mantle', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+    test {
+        java {
+            readFrontier(frontiers[1].ledger).each { exclude it.substring(frontiers[1].root.length() + 1) }
         }
     }
 }
 
-configurations {
-    deployerJars
-}
-               
-dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+/*
+ * Guards the frontier on every `check`:
+ *
+ *  (a) every path in a ledger must exist, so a file cannot be renamed or deleted
+ *      out from under the ledger and leave a stale line behind; and
+ *  (b) a ledger may only shrink. The baseline is the committed copy at HEAD~,
+ *      read with `git show HEAD~:<path>` — so on a branch each commit is checked
+ *      against its parent, and CI checking out a PR head sees the same thing.
+ *      Any entry present now but absent from the baseline fails the build: that
+ *      is a file being pushed back behind the frontier instead of ported.
+ *
+ * If HEAD~ has no copy of the ledger (the commit that introduces it, or a shallow
+ * clone with no parent) there is no baseline and the shrink check is skipped; the
+ * existence check still runs.
+ */
+tasks.register('checkPortingFrontier') {
+    group = 'verification'
+    description = 'Verifies the porting frontier is intact and has not grown since HEAD~.'
 
-    // compile against the JEI API but do not include it at runtime
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
-    // at runtime, use the full JEI jar
-    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+    def projectDirectory = projectDir
+    def ledgers = frontiers.collect { [name: it.name, path: rootDir.toPath().relativize(it.ledger.toPath()).toString(), file: it.ledger] }
+    def read = readFrontier
+    inputs.files(frontiers*.ledger).withPropertyName('ledgers')
+
+    doLast {
+        // Reads the committed copy of a ledger at HEAD~; null when there is no baseline.
+        def baselineOf = { String path ->
+            def out = new ByteArrayOutputStream()
+            def proc = new ProcessBuilder('git', 'show', "HEAD~:${path}".toString())
+                    .directory(projectDirectory)
+                    .redirectErrorStream(false)
+                    .start()
+            proc.inputStream.transferTo(out)
+            proc.errorStream.transferTo(OutputStream.nullOutputStream())
+            return proc.waitFor() == 0 ? out.toString('UTF-8') : null
+        }
+
+        def failures = []
+        ledgers.each { ledger ->
+            def entries = read(ledger.file)
+
+            def duplicates = entries.countBy { it }.findAll { it.value > 1 }.keySet()
+            if (!duplicates.isEmpty()) {
+                failures << "${ledger.path} lists ${duplicates.size()} path(s) more than once:\n  ${duplicates.join('\n  ')}"
+            }
+
+            def missing = entries.findAll { !new File(projectDirectory, it).exists() }
+            if (!missing.isEmpty()) {
+                failures << "${ledger.path} lists ${missing.size()} path(s) that do not exist. Delete the line if the file was ported or removed:\n  ${missing.join('\n  ')}"
+            }
+
+            def baselineText = baselineOf(ledger.path)
+            if (baselineText == null) {
+                logger.lifecycle("porting frontier [${ledger.name}]: ${entries.size()} unported file(s); no copy at HEAD~, shrink check skipped")
+                return
+            }
+            def baseline = baselineText.readLines()*.trim().findAll { !it.isEmpty() && !it.startsWith('#') } as Set
+            def added = entries.findAll { !baseline.contains(it) }
+            if (!added.isEmpty()) {
+                failures << "${ledger.path} grew by ${added.size()} entr(y/ies) since HEAD~. The porting frontier only shrinks:\n  ${added.join('\n  ')}"
+            }
+            def ported = baseline.size() - entries.size()
+            logger.lifecycle("porting frontier [${ledger.name}]: ${entries.size()} unported file(s), ${ported >= 0 ? ported : 0} ported since HEAD~")
+        }
+
+        if (!failures.isEmpty()) {
+            throw new GradleException("Porting frontier check failed:\n\n${failures.join('\n\n')}\n")
+        }
+    }
+}
+
+tasks.named('check').configure {
+    dependsOn 'checkPortingFrontier'
+}
+
+neoForge {
+    version = neoforge_version
+
+    parchment {
+        minecraftVersion = parchment_minecraft_version
+        mappingsVersion = project.parchment_version
+    }
+
+    // The shipped access transformer is still SRG-named (f_97726_ and friends), which
+    // NeoForge cannot load — 1.21 userdev and runtime are both Mojang-named. Clearing the
+    // collection overrides ModDevGradle's convention of picking up
+    // src/main/resources/META-INF/accesstransformer.cfg automatically.
+    // Re-enabled in the next PR with names translated; the cfg file itself is untouched.
+    accessTransformers {
+        files.setFrom()
+    }
+
+    mods {
+        mantle {
+            sourceSet sourceSets.main
+        }
+    }
+
+    runs {
+        // applies to all the run configs below
+        configureEach {
+            gameDirectory = project.file('run')
+            // Recommended logging level for the console.
+            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+
+        client {
+            client()
+        }
+
+        server {
+            server()
+            programArgument '--nogui'
+        }
+
+        data {
+            data()
+            programArguments.addAll(
+                    '--mod', 'mantle',
+                    '--all',
+                    '--output', file('src/generated/resources/').absolutePath,
+                    '--existing', file('src/main/resources/').absolutePath)
+        }
+
+        gameTestServer {
+            type = 'gameTestServer'
+        }
+    }
+
+    // neoForge.unitTest (which puts a loaded Minecraft on the test classpath) stays off
+    // while every test is behind the porting frontier. It comes back with the tests.
+}
+
+dependencies {
+    // Minecraft and NeoForge come from the neoForge block above, not from a dependency line.
+    // JEI: pending. No compileOnly/runtimeOnly JEI artifacts until M12 brings the compat
+    // classes back; nothing in the compiled source set references it today.
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
@@ -166,12 +280,14 @@ tasks.named('processResources', ProcessResources).configure {
         'version': artifact_version,
         'loader_range': loader_range,
         'minecraft_range': minecraft_range,
-        'forge_range': forge_range
+        'neoforge_range': neoforge_range
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
-        expand replaceProperties + [project: project]
+    // No `project` in the binding: neither template references it, and reaching for
+    // Task.project at execution time is deprecated and configuration-cache hostile.
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties
     }
 }
 
@@ -189,8 +305,6 @@ tasks.named('jar', Jar).configure {
     }
 }
 
-jar.finalizedBy('reobfJar')
-
 java {
     withSourcesJar()
 }
@@ -200,7 +314,7 @@ sourcesJar {
     exclude 'data/**'
     exclude 'pack.png'
     exclude 'pack.mcmeta'
-    exclude 'META-INF/mods.toml'
+    exclude 'META-INF/neoforge.mods.toml'
 }
 
 artifacts {
