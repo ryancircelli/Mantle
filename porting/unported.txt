@@ -266,11 +266,6 @@ src/main/java/slimeknights/mantle/plugin/jei/entity/package-info.java
 src/main/java/slimeknights/mantle/plugin/jei/package-info.java
 src/main/java/slimeknights/mantle/recipe/MantleRecipeSerializers.java
 src/main/java/slimeknights/mantle/recipe/MantleRecipes.java
-src/main/java/slimeknights/mantle/recipe/condition/TagCombinationCondition.java
-src/main/java/slimeknights/mantle/recipe/condition/TagCondition.java
-src/main/java/slimeknights/mantle/recipe/condition/TagEmptyCondition.java
-src/main/java/slimeknights/mantle/recipe/condition/TagFilledCondition.java
-src/main/java/slimeknights/mantle/recipe/condition/package-info.java
 src/main/java/slimeknights/mantle/recipe/cooking/BlastingResultRecipe.java
 src/main/java/slimeknights/mantle/recipe/cooking/CampfireResultRecipe.java
 src/main/java/slimeknights/mantle/recipe/cooking/CookingRecipeBuilder.java
@@ -292,7 +287,6 @@ src/main/java/slimeknights/mantle/recipe/data/ItemNameOutput.java
 src/main/java/slimeknights/mantle/recipe/data/NBTNameIngredient.java
 src/main/java/slimeknights/mantle/recipe/data/package-info.java
 src/main/java/slimeknights/mantle/recipe/helper/LoadableIngredientSerializer.java
-src/main/java/slimeknights/mantle/recipe/helper/TagEmptyCondition.java
 src/main/java/slimeknights/mantle/recipe/ingredient/EntityIngredient.java
 src/main/java/slimeknights/mantle/recipe/ingredient/FluidContainerIngredient.java
 src/main/java/slimeknights/mantle/recipe/ingredient/ItemIngredient.java
