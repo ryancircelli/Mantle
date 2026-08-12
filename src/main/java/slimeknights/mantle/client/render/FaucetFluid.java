@@ -5,11 +5,11 @@ import com.google.gson.JsonObject;
 import lombok.Getter;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Direction.Axis;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import org.joml.Vector3f;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.datamap.BlockStateDataMapLoader;
@@ -155,12 +155,12 @@ public record FaucetFluid(List<FluidCuboid> side, List<FluidCuboid> center, bool
       }
 
       @Override
-      public FaucetFluid decode(FriendlyByteBuf buffer, TypedMap context) {
+      public FaucetFluid decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
         return LOADABLE.decode(buffer, context);
       }
 
       @Override
-      public void encode(FriendlyByteBuf buffer, FaucetFluid value) {
+      public void encode(RegistryFriendlyByteBuf buffer, FaucetFluid value) {
         LOADABLE.encode(buffer, value);
       }
     }

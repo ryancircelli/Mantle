@@ -10,10 +10,14 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.FogRenderer.FogMode;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
-import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
-import net.minecraftforge.fluids.FluidType;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.neoforged.neoforge.fluids.FluidType;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import org.joml.Vector3f;
 import slimeknights.mantle.client.render.FluidRenderer;
+import slimeknights.mantle.fluid.InvertedFluidType;
+import slimeknights.mantle.fluid.TextureFluidType;
 
 import javax.annotation.Nullable;
 
@@ -22,6 +26,21 @@ import javax.annotation.Nullable;
 public class ClientTextureFluidType implements IClientFluidTypeExtensions {
   protected final FluidType type;
   private Vector3f fogColor;
+
+  /**
+   * Registers client extensions for every {@link TextureFluidType} and {@link InvertedFluidType} in the registry,
+   * including any a dependent mod registered, which is what {@code FluidType#initializeClient} used to do implicitly
+   * before 1.21 deprecated it. Registering twice for one type throws, so this is the only place either class is bound.
+   */
+  public static void registerExtensions(RegisterClientExtensionsEvent event) {
+    for (FluidType type : NeoForgeRegistries.FLUID_TYPES) {
+      if (type instanceof InvertedFluidType) {
+        event.registerFluidType(new ClientInvertedFluidType(type), type);
+      } else if (type instanceof TextureFluidType) {
+        event.registerFluidType(new ClientTextureFluidType(type), type);
+      }
+    }
+  }
 
   @Override
   public int getTintColor() {

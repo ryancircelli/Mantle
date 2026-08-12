@@ -1,30 +1,19 @@
 package slimeknights.mantle.client.render;
 
-import com.google.common.collect.ImmutableMap;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat.Mode;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import slimeknights.mantle.Mantle;
 
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.ELEMENT_COLOR;
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.ELEMENT_NORMAL;
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.ELEMENT_PADDING;
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.ELEMENT_POSITION;
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.ELEMENT_UV0;
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.ELEMENT_UV1;
-import static com.mojang.blaze3d.vertex.DefaultVertexFormat.ELEMENT_UV2;
-
 /**
  * Class for render types defined by Mantle
  */
-public class MantleRenderTypes extends RenderType {
-
-  private MantleRenderTypes(String name, VertexFormat format, Mode mode, int bufferSize, boolean useDelegate, boolean needsSorting, Runnable setupTaskIn, Runnable clearTaskIn) {
-    super(name, format, mode, bufferSize, useDelegate, needsSorting, setupTaskIn, clearTaskIn);
-  }
-
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class MantleRenderTypes {
   /** Extension of {@link RenderType#POSITION_COLOR_TEX_LIGHTMAP_SHADER} with fog information based on {@link RenderType#ENTITY_TRANSLUCENT_CULL} */
   public static final RenderStateShard.ShaderStateShard FLUID_SHADER = new RenderStateShard.ShaderStateShard(MantleShaders::getConfiguredFluidShader);
 
@@ -32,36 +21,33 @@ public class MantleRenderTypes extends RenderType {
    * Render type used for the fluid renderer.
    * TODO 1.21: can we replace this with {@link RenderType#ENTITY_TRANSLUCENT_CULL}? Would require including normals in our vertex format.
    */
-  public static final RenderType FLUID = create(
+  public static final RenderType FLUID = RenderType.create(
     Mantle.modId + ":block_render_type",
-    DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, VertexFormat.Mode.QUADS, 256, false, true,
+    DefaultVertexFormat.POSITION_COLOR_TEX_LIGHTMAP, Mode.QUADS, 256, false, true,
     RenderType.CompositeState.builder()
-      .setLightmapState(LIGHTMAP)
+      .setLightmapState(RenderStateShard.LIGHTMAP)
       .setShaderState(FLUID_SHADER)
-      .setTextureState(BLOCK_SHEET_MIPPED)
-      .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+      .setTextureState(RenderStateShard.BLOCK_SHEET_MIPPED)
+      .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
       .createCompositeState(false));
 
   /**
-   * Render type used for the structure renderer
+   * Vertex format used for the structure renderer.
+   * 1.20 built this by hand out of {@code DefaultVertexFormat}'s element constants, which are gone: elements moved to
+   * {@link com.mojang.blaze3d.vertex.VertexFormatElement} and formats are built through {@link VertexFormat#builder()}.
+   * {@link DefaultVertexFormat#NEW_ENTITY} is element for element the format this used to declare, so it is that now
+   * rather than a rebuilt copy of it.
    */
-  public static final VertexFormat BLOCK_WITH_OVERLAY = new VertexFormat(ImmutableMap.of(
-    "Position", ELEMENT_POSITION,
-    "Color", ELEMENT_COLOR,
-    "UV0", ELEMENT_UV0,
-    "UV1", ELEMENT_UV1,
-    "UV2", ELEMENT_UV2,
-    "Normal", ELEMENT_NORMAL,
-    "Padding", ELEMENT_PADDING));
+  public static final VertexFormat BLOCK_WITH_OVERLAY = DefaultVertexFormat.NEW_ENTITY;
 
-  public static final RenderType TRANSLUCENT_FULLBRIGHT = create(
+  public static final RenderType TRANSLUCENT_FULLBRIGHT = RenderType.create(
     Mantle.modId + ":translucent_fullbright",
     BLOCK_WITH_OVERLAY, Mode.QUADS, 256, false, false,
     RenderType.CompositeState.builder()
       .setShaderState(new RenderStateShard.ShaderStateShard(MantleShaders::getBlockFullBrightShader))
       .setLightmapState(new RenderStateShard.LightmapStateShard(false))
-      .setOverlayState(OVERLAY)
-      .setTextureState(BLOCK_SHEET_MIPPED)
-      .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
+      .setOverlayState(RenderStateShard.OVERLAY)
+      .setTextureState(RenderStateShard.BLOCK_SHEET_MIPPED)
+      .setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
       .createCompositeState(false));
 }

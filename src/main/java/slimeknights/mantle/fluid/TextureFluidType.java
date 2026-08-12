@@ -1,22 +1,18 @@
 package slimeknights.mantle.fluid;
 
-import net.minecraftforge.client.extensions.common.IClientFluidTypeExtensions;
-import net.minecraftforge.fluids.FluidType;
-import slimeknights.mantle.fluid.texture.ClientTextureFluidType;
-
-import java.util.function.Consumer;
+import net.neoforged.neoforge.fluids.FluidType;
 
 /**
  * Fluid type whose color and textures are determined by the model.
- * Just implements {@link ClientTextureFluidType} in initializeClient as the Forge API is dumb and does not let me do that in a client place.
+ * <p>
+ * 1.20 had this class implement {@code initializeClient} to hand back a {@code ClientTextureFluidType}, which forced a
+ * common class to name a client one. 1.21 deprecated that method in favour of
+ * {@link net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent}, so the client half lives
+ * entirely on the client side now: see
+ * {@link slimeknights.mantle.fluid.texture.ClientTextureFluidType#registerExtensions}.
  */
 public class TextureFluidType extends FluidType {
   public TextureFluidType(Properties properties) {
     super(properties);
-  }
-
-  @Override
-  public void initializeClient(Consumer<IClientFluidTypeExtensions> consumer) {
-    consumer.accept(new ClientTextureFluidType(this));
   }
 }
