@@ -73,8 +73,7 @@ public class FallbackPredicateRegistry<T,F> extends PredicateRegistry<T> {
 
   @Override
   public IJsonPredicate<T> deserialize(JsonObject json, TypedMap context) {
-    // JsonHelper#getResourceLocation is still behind the frontier on network, and the loadable is what its own javadoc
-    // recommends instead; same substitution M4 made in data/gson.
+    // the loadable rather than JsonHelper#getResourceLocation, which its own javadoc recommends against
     ResourceLocation type = Loadables.RESOURCE_LOCATION.getIfPresent(json, "type");
     //  see if we have a primary loader, if so parse that
     RecordLoadable<? extends IJsonPredicate<T>> loader = loaders.getValue(type);

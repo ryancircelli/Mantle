@@ -36,7 +36,6 @@ src/main/java/slimeknights/mantle/client/ExtraHeartRenderHandler.java
 src/main/java/slimeknights/mantle/client/ResourceColorManager.java
 src/main/java/slimeknights/mantle/client/SafeClientAccess.java
 src/main/java/slimeknights/mantle/client/TooltipKey.java
-src/main/java/slimeknights/mantle/client/book/BookHelper.java
 src/main/java/slimeknights/mantle/client/book/BookLoader.java
 src/main/java/slimeknights/mantle/client/book/BookScreenOpener.java
 src/main/java/slimeknights/mantle/client/book/HTMLUtils.java
@@ -259,7 +258,6 @@ src/main/java/slimeknights/mantle/item/BurnableTallBlockItem.java
 src/main/java/slimeknights/mantle/item/ConstantFluidContainerWrapper.java
 src/main/java/slimeknights/mantle/item/ContainerFoodItem.java
 src/main/java/slimeknights/mantle/item/EdibleItem.java
-src/main/java/slimeknights/mantle/item/ILecternBookItem.java
 src/main/java/slimeknights/mantle/item/LecternBookItem.java
 src/main/java/slimeknights/mantle/item/TooltipItem.java
 src/main/java/slimeknights/mantle/item/package-info.java
@@ -283,24 +281,8 @@ src/main/java/slimeknights/mantle/loot/function/RetexturedLootFunction.java
 src/main/java/slimeknights/mantle/loot/function/SetFluidLootFunction.java
 src/main/java/slimeknights/mantle/loot/function/package-info.java
 src/main/java/slimeknights/mantle/loot/package-info.java
-src/main/java/slimeknights/mantle/network/MantleNetwork.java
-src/main/java/slimeknights/mantle/network/NetworkWrapper.java
-src/main/java/slimeknights/mantle/network/PacketRegistration.java
-src/main/java/slimeknights/mantle/network/PacketRegistry.java
-src/main/java/slimeknights/mantle/network/package-info.java
-src/main/java/slimeknights/mantle/network/packet/DropLecternBookPacket.java
-src/main/java/slimeknights/mantle/network/packet/ForgePacketContext.java
-src/main/java/slimeknights/mantle/network/packet/IPacket.java
-src/main/java/slimeknights/mantle/network/packet/ISimplePacket.java
-src/main/java/slimeknights/mantle/network/packet/IThreadsafePacket.java
-src/main/java/slimeknights/mantle/network/packet/OpenLecternBookPacket.java
 src/main/java/slimeknights/mantle/network/packet/OpenNamedBookPacket.java
-src/main/java/slimeknights/mantle/network/packet/PacketContext.java
 src/main/java/slimeknights/mantle/network/packet/SwingArmPacket.java
-src/main/java/slimeknights/mantle/network/packet/UpdateHeldPagePacket.java
-src/main/java/slimeknights/mantle/network/packet/UpdateInventoryPagePacket.java
-src/main/java/slimeknights/mantle/network/packet/UpdateLecternPagePacket.java
-src/main/java/slimeknights/mantle/network/packet/package-info.java
 src/main/java/slimeknights/mantle/plugin/jei/JEIPlugin.java
 src/main/java/slimeknights/mantle/plugin/jei/MantleJEIConstants.java
 src/main/java/slimeknights/mantle/plugin/jei/RetexturableRecipeExtension.java
@@ -373,5 +355,4 @@ src/main/java/slimeknights/mantle/registration/deferred/FluidDeferredRegister.ja
 src/main/java/slimeknights/mantle/registration/object/FlowingFluidObject.java
 src/main/java/slimeknights/mantle/registration/object/FluidObject.java
 src/main/java/slimeknights/mantle/util/CombatHelper.java
-src/main/java/slimeknights/mantle/util/JsonHelper.java
 src/main/java/slimeknights/mantle/util/OffhandCooldownTracker.java

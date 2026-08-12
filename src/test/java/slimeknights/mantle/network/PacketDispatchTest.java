@@ -1,30 +1,26 @@
 package slimeknights.mantle.network;
 
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkEvent;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.network.packet.IPacket;
-import slimeknights.mantle.network.packet.ISimplePacket;
 import slimeknights.mantle.network.packet.PacketContext;
 
 import javax.annotation.Nullable;
-import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Tests handling a packet through the context abstraction, with nothing connected behind it */
 class PacketDispatchTest {
-  /** Packet on the new interface, recording the context it was handed */
+  /** Packet recording the context it was handed */
   private static class ContextPacket implements IPacket {
     @Nullable
     PacketContext received;
 
     @Override
-    public void encode(FriendlyByteBuf buffer) {}
+    public void encode(RegistryFriendlyByteBuf buffer) {}
 
     @Override
     public void handle(PacketContext context) {
@@ -32,13 +28,13 @@ class PacketDispatchTest {
     }
   }
 
-  /** Packet on the new interface that expects to run on the main thread */
+  /** Packet that expects to run on the main thread */
   private static class ThreadsafePacket implements IPacket.Threadsafe {
     @Nullable
     PacketContext received;
 
     @Override
-    public void encode(FriendlyByteBuf buffer) {}
+    public void encode(RegistryFriendlyByteBuf buffer) {}
 
     @Override
     public void handleThreadsafe(PacketContext context) {
@@ -46,38 +42,18 @@ class PacketDispatchTest {
     }
   }
 
-  /** Packet on the old interface which never reads its context */
-  private static class LegacyPacket implements ISimplePacket {
-    boolean handled = false;
-
-    @Override
-    public void encode(FriendlyByteBuf buffer) {}
-
-    @Override
-    public void handle(Supplier<NetworkEvent.Context> context) {
-      this.handled = true;
-    }
-  }
-
-  /** Packet on the old interface which reads its context */
-  private static class LegacySenderPacket implements ISimplePacket {
-    @Override
-    public void encode(FriendlyByteBuf buffer) {}
-
-    @Override
-    public void handle(Supplier<NetworkEvent.Context> context) {
-      context.get().getSender();
-    }
+  private static <P> PacketRegistration<P> registrationOf(ResourceLocation id, Class<P> clazz, java.util.function.BiConsumer<P,PacketContext> handler) {
+    return new PacketRegistration<>(id, clazz, (packet, buffer) -> {}, buffer -> null, handler, PacketFlow.CLIENTBOUND);
   }
 
 
-  /* New path */
+  /* Handling */
 
   @Test
   void handle_receivesTheContext() {
     ContextPacket packet = new ContextPacket();
     TestPacketContext context = new TestPacketContext();
-    NetworkWrapper.simpleHandler(ContextPacket.class).accept(packet, context);
+    packet.handle(context);
     assertThat(packet.received).isSameAs(context);
   }
 
@@ -85,7 +61,7 @@ class PacketDispatchTest {
   void handle_threadsafeDefersToTheMainThread() {
     ThreadsafePacket packet = new ThreadsafePacket();
     TestPacketContext context = new TestPacketContext();
-    NetworkWrapper.simpleHandler(ThreadsafePacket.class).accept(packet, context);
+    packet.handle(context);
     // nothing ran yet, the handler is queued
     assertThat(packet.received).isNull();
     assertThat(context.enqueued).hasSize(1);
@@ -95,61 +71,18 @@ class PacketDispatchTest {
 
   @Test
   void handle_readsTheContextProperties() {
-    TestPacketContext context = new TestPacketContext(null, NetworkDirection.PLAY_TO_CLIENT);
+    TestPacketContext context = new TestPacketContext(null, PacketFlow.CLIENTBOUND);
     assertThat(context.getSender()).isNull();
-    assertThat(context.getDirection()).isEqualTo(NetworkDirection.PLAY_TO_CLIENT);
+    assertThat(context.getDirection()).isEqualTo(PacketFlow.CLIENTBOUND);
   }
 
 
-  /* Legacy path */
+  /* Dispatch through a registration, which is what the channel does */
 
   @Test
-  void simpleHandler_runsAPacketThatIgnoresItsContext() {
-    LegacyPacket packet = new LegacyPacket();
-    NetworkWrapper.simpleHandler(LegacyPacket.class).accept(packet, new TestPacketContext());
-    assertThat(packet.handled).isTrue();
-  }
-
-  @Test
-  void simpleHandler_readingTheNetworkContextFailsClearly() {
-    LegacySenderPacket packet = new LegacySenderPacket();
-    BiConsumer<LegacySenderPacket,PacketContext> handler = NetworkWrapper.simpleHandler(LegacySenderPacket.class);
-    assertThatThrownBy(() -> handler.accept(packet, new TestPacketContext()))
-      .isInstanceOf(IllegalStateException.class)
-      .hasMessageContaining("is not backed by a network event context");
-  }
-
-  @Test
-  void contextHandler_runsAHandlerThatIgnoresItsContext() {
-    boolean[] called = new boolean[1];
-    BiConsumer<String,PacketContext> handler = NetworkWrapper.contextHandler((packet, context) -> called[0] = true);
-    handler.accept("packet", new TestPacketContext());
-    assertThat(called[0]).isTrue();
-  }
-
-
-  /* Equivalence between the two registration paths */
-
-  @Test
-  void simpleHandler_routesANewPacketStraightToTheContextHandler() {
-    // registering an IPacket the old way must not send it through the network event context, as it does not need one
-    ContextPacket packet = new ContextPacket();
-    TestPacketContext context = new TestPacketContext();
-    NetworkWrapper.simpleHandler(ContextPacket.class).accept(packet, context);
-    ContextPacket direct = new ContextPacket();
-    direct.handle(context);
-    assertThat(packet.received).isSameAs(direct.received);
-  }
-
-  @Test
-  void registration_matchesBetweenPaths() {
-    // the derived identifier is what an unmigrated registration gets, and it must equal the one a packet declares
-    PacketRegistry registry = new PacketRegistry(new ResourceLocation("mantle", "network"));
-    PacketRegistration<ContextPacket> registration = new PacketRegistration<>(
-      registry.deriveId(ContextPacket.class), ContextPacket.class, IPacket::encode, buffer -> new ContextPacket(),
-      NetworkWrapper.simpleHandler(ContextPacket.class), NetworkDirection.PLAY_TO_CLIENT);
-    assertThat(registration.id()).isEqualTo(new ResourceLocation("mantle", "context"));
-
+  void registration_dispatchesToThePacket() {
+    PacketRegistration<ContextPacket> registration = registrationOf(
+      ResourceLocation.fromNamespaceAndPath("mantle", "context"), ContextPacket.class, IPacket::handle);
     ContextPacket packet = new ContextPacket();
     TestPacketContext context = new TestPacketContext();
     registration.handle(packet, context);
@@ -157,11 +90,31 @@ class PacketDispatchTest {
   }
 
   @Test
+  void registration_dispatchesToAGenericHandler() {
+    // a packet class Mantle does not own is handled by the function passed at registration instead
+    boolean[] called = new boolean[1];
+    PacketRegistration<String> registration = registrationOf(
+      ResourceLocation.fromNamespaceAndPath("mantle", "plain"), String.class, (packet, context) -> called[0] = true);
+    registration.handle("packet", new TestPacketContext());
+    assertThat(called[0]).isTrue();
+  }
+
+  @Test
+  void registration_matchesBetweenPaths() {
+    // the derived identifier is what an unmigrated registration gets, and it must equal the one a packet declares
+    PacketRegistry registry = new PacketRegistry(ResourceLocation.fromNamespaceAndPath("mantle", "network"));
+    PacketRegistration<ContextPacket> registration = registrationOf(
+      registry.deriveId(ContextPacket.class), ContextPacket.class, IPacket::handle);
+    assertThat(registration.id()).isEqualTo(ResourceLocation.fromNamespaceAndPath("mantle", "context"));
+  }
+
+  @Test
   void registration_rejectsTheWrongPacketType() {
-    PacketRegistration<ContextPacket> registration = new PacketRegistration<>(
-      new ResourceLocation("mantle", "context"), ContextPacket.class, IPacket::encode, buffer -> new ContextPacket(),
-      IPacket::handle, NetworkDirection.PLAY_TO_CLIENT);
+    PacketRegistration<ContextPacket> registration = registrationOf(
+      ResourceLocation.fromNamespaceAndPath("mantle", "context"), ContextPacket.class, IPacket::handle);
     assertThatThrownBy(() -> registration.handle(new ThreadsafePacket(), new TestPacketContext()))
+      .isInstanceOf(ClassCastException.class);
+    assertThatThrownBy(() -> registration.wrap(new ThreadsafePacket()))
       .isInstanceOf(ClassCastException.class);
   }
 }

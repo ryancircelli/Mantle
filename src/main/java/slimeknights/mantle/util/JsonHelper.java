@@ -1,7 +1,6 @@
 package slimeknights.mantle.util;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -10,21 +9,19 @@ import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.ResourceLocationException;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.event.OnDatapackSyncEvent;
-import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.network.PacketDistributor.PacketTarget;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import org.jetbrains.annotations.Contract;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.gson.MantleGson;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.common.BlockStateLoadable;
+import slimeknights.mantle.data.loadable.primitive.ResourceLocationLoadable;
 import slimeknights.mantle.network.NetworkWrapper;
 import slimeknights.mantle.network.packet.ISimplePacket;
 
@@ -45,12 +42,12 @@ import java.util.function.Function;
 public class JsonHelper {
   private JsonHelper() {}
 
-  /** Default GSON instance, use instead of creating a new instance unless you need additional type adapaters */
-  public static final Gson DEFAULT_GSON = (new GsonBuilder())
-    .registerTypeAdapter(ResourceLocation.class, new ResourceLocation.Serializer())
-    .setPrettyPrinting()
-    .disableHtmlEscaping()
-    .create();
+  /**
+   * Default GSON instance, use instead of creating a new instance unless you need additional type adapaters
+   * @apiNote  The instance lives in {@link MantleGson} so the data packages, which this class depends on, can reach it
+   *           without depending back on this one.
+   */
+  public static final Gson DEFAULT_GSON = MantleGson.DEFAULT;
 
   /**
    * Gets an element from JSON, throwing an exception if missing
@@ -166,12 +163,7 @@ public class JsonHelper {
    * @return  Resource location parsed
    */
   public static ResourceLocation parseResourceLocation(String text, String key) {
-    // basically the inside of ResourceLocation#tryParse, but with a JSON exception instead of being nullable
-    try {
-      return new ResourceLocation(text);
-    } catch (ResourceLocationException ex) {
-      throw new JsonSyntaxException("Expected " + key + " to be a resource location, was '" + text + "'", ex);
-    }
+    return ResourceLocationLoadable.parse(text, key);
   }
 
   /**
@@ -208,43 +200,6 @@ public class JsonHelper {
    */
   public static ResourceLocation convertToResourceLocation(JsonElement json, String key) {
     return parseResourceLocation(GsonHelper.convertToString(json, key), key);
-  }
-
-  /**
-   * Parses a registry entry from JSON
-   * @param registry  Registry
-   * @param element   Element to deserialize
-   * @param key       Json key
-   * @param <T>  Object type
-   * @return  Registry value
-   * @throws JsonSyntaxException  If something failed to parse
-   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables}
-   */
-  @Deprecated(forRemoval = true)
-  public static <T> T convertToEntry(IForgeRegistry<T> registry, JsonElement element, String key) {
-    ResourceLocation name = JsonHelper.convertToResourceLocation(element, key);
-    if (registry.containsKey(name)) {
-      T value = registry.getValue(name);
-      if (value != null) {
-        return value;
-      }
-    }
-    throw new JsonSyntaxException("Unknown " + registry.getRegistryName() + " " + name);
-  }
-
-  /**
-   * Parses a registry entry from JSON
-   * @param registry  Registry
-   * @param parent    Parent JSON object
-   * @param key       Json key
-   * @param <T>  Object type
-   * @return  Registry value
-   * @throws JsonSyntaxException  If something failed to parse
-   * @deprecated use {@link slimeknights.mantle.data.loadable.Loadables}
-   */
-  @Deprecated(forRemoval = true)
-  public static <T> T getAsEntry(IForgeRegistry<T> registry, JsonObject parent, String key) {
-    return convertToEntry(registry, JsonHelper.getElement(parent, key), key);
   }
 
   /** Parses an enum from its name */
@@ -295,7 +250,7 @@ public class JsonHelper {
       .getNamespaces().stream()
       .filter(ResourceLocation::isValidNamespace)
       .flatMap(namespace -> {
-        ResourceLocation location = new ResourceLocation(namespace, path);
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(namespace, path);
         return manager.getResourceStack(location).stream()
           .map(preferredPath != null ? resource -> {
             Mantle.logger.warn("Using deprecated path {} in pack {} - use {}:{} instead", location, resource.sourcePackId(), location.getNamespace(), preferredPath);
@@ -304,7 +259,7 @@ public class JsonHelper {
       }).filter(Objects::nonNull).toList();
   }
 
-  /** Sends the packet to the given player */
+  /** Sends the packets to the given player */
   private static void sendPackets(NetworkWrapper network, ServerPlayer player, ISimplePacket[] packets) {
     // on an integrated server, the modifier registries have a single instance on both the client and the server thread
     // this means syncing is unneeded, and has the side-effect of recreating all the modifier instances (which can lead to unexpected behavior)
@@ -312,26 +267,17 @@ public class JsonHelper {
 
     // on a dedicated server, the client is running a separate game instance, this is where we send packets, plus fully loaded should already be true
     // this event is not fired when connecting to a server
-    if (!player.connection.connection.isMemoryConnection()) {
-      PacketTarget target = PacketDistributor.PLAYER.with(() -> player);
+    if (!player.connection.getConnection().isMemoryConnection()) {
       for (ISimplePacket packet : packets) {
-        network.send(target, packet);
+        network.sendTo(packet, player);
       }
     }
   }
 
   /** Called when the player logs in to send packets */
   public static void syncPackets(OnDatapackSyncEvent event, NetworkWrapper network, ISimplePacket... packets) {
-    // send to single player
-    ServerPlayer targetedPlayer = event.getPlayer();
-    if (targetedPlayer != null) {
-      sendPackets(network, targetedPlayer, packets);
-    } else {
-      // send to all players
-      for (ServerPlayer player : event.getPlayerList().getPlayers()) {
-        sendPackets(network, player, packets);
-      }
-    }
+    // the event names either the joining player or nobody, in which case every player is reloading
+    event.getRelevantPlayers().forEach(player -> sendPackets(network, player, packets));
   }
 
   /**
@@ -372,12 +318,12 @@ public class JsonHelper {
   /** Parses the given JSON element using the passed codec */
   public static <T> T parse(Codec<T> codec, JsonElement json) throws JsonParseException {
     return codec.parse(new Dynamic<>(JsonOps.INSTANCE, json))
-      .getOrThrow(false, Mantle.logger::error);
+      .getOrThrow(JsonParseException::new);
   }
 
   /** Serializes the given object using the passed codec */
   public static <T> JsonElement serialize(Codec<T> codec, T object) {
-    return codec.encodeStart(JsonOps.INSTANCE, object).getOrThrow(false, Mantle.logger::error);
+    return codec.encodeStart(JsonOps.INSTANCE, object).getOrThrow(JsonParseException::new);
   }
 
 

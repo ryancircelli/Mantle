@@ -1,17 +1,14 @@
 package slimeknights.mantle.network.packet;
 
-import net.minecraftforge.network.NetworkEvent;
-
-import java.util.function.Supplier;
-
 /**
- * Packet which handles itself through {@link PacketContext} rather than the network event context.
+ * Packet which handles itself through {@link PacketContext}, the interface every packet class should implement.
  * <p>
- * This is the interface new packets should implement. It extends {@link ISimplePacket} so an existing packet can be
- * converted one class at a time: the registration call, the sending helpers, and
- * {@link slimeknights.mantle.util.JsonHelper#syncPackets} all keep working untouched, and the inherited
- * {@link #handle(Supplier)} bridges the network event context back to a {@link PacketContext} for any caller still on
- * the old entry point.
+ * It extends {@link ISimplePacket} so a packet is accepted anywhere only the write half is needed, notably
+ * {@link slimeknights.mantle.util.JsonHelper#syncPackets} and the sending helpers on
+ * {@link slimeknights.mantle.network.NetworkWrapper}.
+ * <p>
+ * A packet does not name its own identity: the identifier passed at registration is what becomes the payload type on
+ * the wire. See {@link slimeknights.mantle.network.PacketPayload} for why that is deliberate.
  */
 public interface IPacket extends ISimplePacket {
   /**
@@ -20,16 +17,9 @@ public interface IPacket extends ISimplePacket {
    */
   void handle(PacketContext context);
 
-  @Override
-  default void handle(Supplier<NetworkEvent.Context> supplier) {
-    NetworkEvent.Context context = supplier.get();
-    handle(new ForgePacketContext(context));
-    context.setPacketHandled(true);
-  }
-
   /**
-   * Packet which automatically wraps its logic in {@link PacketContext#enqueueWork(Runnable)} for thread safety.
-   * The {@link PacketContext} counterpart of {@link IThreadsafePacket}.
+   * Packet which wraps its logic in {@link PacketContext#enqueueWork(Runnable)} so it always runs on the receiving
+   * side's main thread, whichever thread the channel chose to decode on.
    */
   interface Threadsafe extends IPacket {
     @Override
@@ -38,7 +28,7 @@ public interface IPacket extends ISimplePacket {
     }
 
     /**
-     * Handles receiving the packet on the correct thread.
+     * Handles receiving the packet on the main thread.
      * @param context  Packet context
      */
     void handleThreadsafe(PacketContext context);

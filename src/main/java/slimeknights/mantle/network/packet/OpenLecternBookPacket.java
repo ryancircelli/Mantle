@@ -2,7 +2,7 @@ package slimeknights.mantle.network.packet;
 
 import lombok.AllArgsConstructor;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import slimeknights.mantle.Mantle;
@@ -19,15 +19,16 @@ public class OpenLecternBookPacket implements IPacket.Threadsafe {
   private final BlockPos pos;
   private final ItemStack book;
 
-  public OpenLecternBookPacket(FriendlyByteBuf buffer) {
+  public OpenLecternBookPacket(RegistryFriendlyByteBuf buffer) {
     this.pos = buffer.readBlockPos();
-    this.book = buffer.readItem();
+    this.book = ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer);
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer) {
+  public void encode(RegistryFriendlyByteBuf buffer) {
     buffer.writeBlockPos(pos);
-    buffer.writeItem(book);
+    // the stack may be empty, and the empty aware codec is the one that matches the old writeItem
+    ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, book);
   }
 
   @Override

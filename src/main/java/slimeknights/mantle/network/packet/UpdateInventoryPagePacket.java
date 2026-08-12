@@ -1,6 +1,6 @@
 package slimeknights.mantle.network.packet;
 
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -12,12 +12,12 @@ public record UpdateInventoryPagePacket(int slot, String page) implements IPacke
   /** Identifier of this packet on Mantle's channel */
   public static final ResourceLocation ID = Mantle.getResource("update_inventory_page");
 
-  public UpdateInventoryPagePacket(FriendlyByteBuf buffer) {
+  public UpdateInventoryPagePacket(RegistryFriendlyByteBuf buffer) {
     this(buffer.readVarInt(), buffer.readUtf(100));
   }
 
   @Override
-  public void encode(FriendlyByteBuf buf) {
+  public void encode(RegistryFriendlyByteBuf buf) {
     buf.writeVarInt(slot);
     buf.writeUtf(page);
   }

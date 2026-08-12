@@ -1,27 +1,23 @@
 package slimeknights.mantle.network.packet;
 
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-
-import java.util.function.Supplier;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 
 /**
- * Packet interface to add common methods for registration.
+ * A packet that knows how to write itself to a buffer.
  * <p>
- * Handling a packet through this interface requires a live network event context, which means the handler cannot run
- * outside a connection. {@link IPacket} handles itself through {@link PacketContext} instead and is the preferred
- * interface for new packets; it extends this one, so nothing that consumes an {@link ISimplePacket} needs to change.
+ * This is the half of the packet API that sending needs, which is why
+ * {@link slimeknights.mantle.util.JsonHelper#syncPackets} and the sending helpers on
+ * {@link slimeknights.mantle.network.NetworkWrapper} take it. {@link IPacket} adds the receiving half and is what a
+ * packet class should implement; this interface only exists separately so a caller that merely sends a packet does not
+ * have to name the handling contract.
+ * <p>
+ * The decoding half is not on this interface: the registry needs a decoder before an instance exists, so it is passed
+ * at registration instead.
  */
 public interface ISimplePacket {
   /**
-   * Encodes a packet for the buffer
-   * @param buf  Buffer instance
+   * Encodes a packet for the buffer.
+   * @param buf  Buffer instance, carrying the connection's registries as every play payload does
    */
-  void encode(FriendlyByteBuf buf);
-
-  /**
-   * Handles receiving the packet
-   * @param context  Packet context
-   */
-  void handle(Supplier<NetworkEvent.Context> context);
+  void encode(RegistryFriendlyByteBuf buf);
 }
