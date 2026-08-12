@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
 import org.jetbrains.annotations.ApiStatus.NonExtendable;
 import org.jetbrains.annotations.ApiStatus.OverrideOnly;
 import org.jetbrains.annotations.Contract;
@@ -52,12 +53,50 @@ public interface Loadable<T> extends JsonDeserializer<T>, JsonSerializer<T>, Str
   }
 
   /**
+   * Deserializes the object from the passed value of an arbitrary serialization format.
+   * @param ops      Ops representing the format of the value, notably {@link com.mojang.serialization.JsonOps} or {@link net.minecraft.nbt.NbtOps}.
+   * @param input    Value of an unknown type to parse
+   * @param key      Key that contained this value
+   * @param context  Additional parsing context, used notably by recipe serializers to store the ID and serializer.
+   * @param <O>      Format of the value
+   * @return  Parsed loadable value
+   * @throws RuntimeException  If unable to read the value, typically a {@link JsonSyntaxException}. See {@link ErrorFactory}.
+   * @implNote  The default implementation converts the value into a {@link JsonElement} then parses that, meaning
+   *            anything gson cannot represent (such as the distinction between the NBT numeric types) is lost.
+   *            Loadables able to parse a format directly should override this method.
+   */
+  default <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return convert(OpsHelper.toJson(ops, input), key, context);
+  }
+
+  /** Same as {@link #convert(DynamicOps, Object, String, TypedMap)} but passes {@link TypedMap#EMPTY} for context. */
+  @NonExtendable
+  default <O> T convert(DynamicOps<O> ops, O input, String key) {
+    return convert(ops, input, key, TypedMap.EMPTY);
+  }
+
+  /**
    * Writes the passed object to json
    * @param object  Object to serialize
    * @return  Serialized object
    * @throws RuntimeException  If unable to serialize the object
    */
   JsonElement serialize(T object);
+
+  /**
+   * Writes the passed object to an arbitrary serialization format.
+   * @param ops     Ops representing the desired format, notably {@link com.mojang.serialization.JsonOps} or {@link net.minecraft.nbt.NbtOps}.
+   * @param object  Object to serialize
+   * @param <O>     Format of the result
+   * @return  Serialized object
+   * @throws RuntimeException  If unable to serialize the object. See {@link ErrorFactory}.
+   * @implNote  The default implementation serializes to a {@link JsonElement} then converts that, meaning anything
+   *            gson cannot represent (such as the distinction between the NBT numeric types) is lost.
+   *            Loadables able to write a format directly should override this method.
+   */
+  default <O> O serialize(DynamicOps<O> ops, T object) {
+    return OpsHelper.fromJson(ops, serialize(object));
+  }
 
 
   /* GSON methods, lets us easily use loadables with GSON adapters. */
