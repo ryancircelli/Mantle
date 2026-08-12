@@ -150,9 +150,15 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoada
   /** Serializes the object into the builder, fighting generics */
   @SuppressWarnings("unchecked")
   private <L,O> RecordBuilder<O> serialize(RecordLoadable<L> loader, DynamicOps<O> ops, T src, RecordBuilder<O> builder) {
-    // unlike the gson variant we cannot verify the loader left the type key alone, a record builder is write only
     ResourceLocation type = loaders.getKey((RecordLoadable<? extends T>)loader);
-    return loader.serialize(ops, (L)src, builder.add("type", ops.createString(type.toString())));
+    O typeValue = ops.createString(type.toString());
+    RecordBuilder<O> result = loader.serialize(ops, (L)src, builder.add("type", typeValue));
+    // a builder able to read itself back can run the same guard as the gson variant; one which cannot returns null
+    O written = OpsHelper.getWritten(result, "type");
+    if (written != null && !written.equals(typeValue)) {
+      throw new IllegalStateException(name + " serializer " + type + " modified the type key, this is not allowed as it breaks deserialization");
+    }
+    return result;
   }
 
   @Override
