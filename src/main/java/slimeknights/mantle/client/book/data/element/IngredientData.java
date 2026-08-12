@@ -7,22 +7,23 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
+import com.mojang.serialization.JsonOps;
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.StringUtil;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
-import net.minecraft.core.NonNullList;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.StringUtil;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.world.item.component.ItemLore;
+import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import slimeknights.mantle.client.book.repository.BookRepository;
-import slimeknights.mantle.recipe.ingredient.SizedIngredient;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.List;
 
 public class IngredientData implements IDataElement {
   public SizedIngredient[] ingredients = new SizedIngredient[0];
@@ -64,7 +65,7 @@ public class IngredientData implements IDataElement {
         continue;
       }
 
-      stacks.addAll(ingredient.getMatchingStacks());
+      stacks.addAll(List.of(ingredient.getItems()));
     }
 
     if(ingredients == null || stacks.isEmpty() || !StringUtil.isNullOrEmpty(error)) {
@@ -82,14 +83,13 @@ public class IngredientData implements IDataElement {
   private ItemStack getMissingItem(String error) {
     ItemStack missingItem = new ItemStack(Items.BARRIER);
 
-    CompoundTag display = missingItem.getOrCreateTagElement("display");
-    display.putString("Name", "\u00A7rError Loading Item");
-    ListTag lore = new ListTag();
-    if(!StringUtil.isNullOrEmpty(error)) {
-      lore.add(StringTag.valueOf("\u00A7r\u00A7eError:"));
-      lore.add(StringTag.valueOf("\u00A7r\u00A7e" + error));
+    missingItem.set(DataComponents.CUSTOM_NAME, Component.literal("Error Loading Item"));
+    if (!StringUtil.isNullOrEmpty(error)) {
+      missingItem.set(DataComponents.LORE, new ItemLore(List.of(
+        Component.literal("Error:"),
+        Component.literal(error)
+      )));
     }
-    display.put("Lore", lore);
 
     return missingItem;
   }
@@ -107,7 +107,7 @@ public class IngredientData implements IDataElement {
           try {
             data.ingredients[i] = readIngredient(array.get(i));
           } catch (Exception e) {
-            data.ingredients[i] = SizedIngredient.of(Ingredient.of(data.getMissingItem(e.getMessage())));
+            data.ingredients[i] = SizedIngredient.of(data.getMissingItem(e.getMessage()).getItem(), 1);
           }
         }
 
@@ -137,13 +137,21 @@ public class IngredientData implements IDataElement {
       return data;
     }
 
+    /**
+     * Reads a single sized ingredient. A bare string is a shorthand for an item id at count 1, matching every
+     * book JSON currently shipped. A JSON object falls back to {@link SizedIngredient#FLAT_CODEC} - the same
+     * shape every other 1.21 Mantle recipe uses ({@code {"item": "...", "count": 3}}, count defaulting to 1) -
+     * which is a format change from whatever Forge's now-deleted {@code SizedIngredient#deserialize} accepted.
+     * No bundled book page exercises the object form, so this is unverified against real content, but is
+     * consistent with {@code SizedIngredientLoadable.FLAT} used everywhere else in this codebase.
+     */
     private SizedIngredient readIngredient(JsonElement json) {
       if(json.isJsonPrimitive()) {
         JsonPrimitive primitive = json.getAsJsonPrimitive();
 
         if(primitive.isString()) {
-          Item item = ForgeRegistries.ITEMS.getValue(new ResourceLocation(primitive.getAsString()));
-          return SizedIngredient.fromItems(item);
+          Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(primitive.getAsString()));
+          return SizedIngredient.of(item, 1);
         }
       }
 
@@ -151,8 +159,7 @@ public class IngredientData implements IDataElement {
         throw new JsonParseException("Must be an array, string or JSON object");
       }
 
-      JsonObject object = json.getAsJsonObject();
-      return SizedIngredient.deserialize(object);
+      return SizedIngredient.FLAT_CODEC.parse(JsonOps.INSTANCE, json).getOrThrow(JsonParseException::new);
     }
   }
 }

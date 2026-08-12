@@ -39,6 +39,8 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.block.GaugeBlock;
+import slimeknights.mantle.client.book.BookLoader;
+import slimeknights.mantle.client.book.repository.FileRepository;
 import slimeknights.mantle.client.model.FallbackModelLoader;
 import slimeknights.mantle.client.model.NBTKeyModel;
 import slimeknights.mantle.client.model.RetexturedModel;
@@ -96,7 +98,7 @@ public class ClientEvents {
   @SubscribeEvent
   static void registerListeners(RegisterClientReloadListenersEvent event) {
     event.registerReloadListener(ModelHelper.LISTENER);
-    // TODO(M11-book): event.registerReloadListener(new BookLoader()) returns with client.book
+    event.registerReloadListener(new BookLoader());
     ResourceColorManager.init(event);
     FluidTooltipHandler.init(event);
     FluidTextureManager.init(event);
@@ -109,7 +111,7 @@ public class ClientEvents {
   @SubscribeEvent
   static void clientSetup(FMLClientSetupEvent event) {
     event.enqueueWork(() -> RegistrationHelper.forEachWoodType(Sheets::addWoodType));
-    // TODO(M11-book): BookLoader.registerBook of the mantle:test book returns with client.book
+    BookLoader.registerBook(Mantle.getResource("test"), new FileRepository(Mantle.getResource("books/test")));
     // TODO(M12-command): MantleClientCommand.init returns with command.client
   }
 
