@@ -28,11 +28,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Command that dumps a tag into a JSON object.
- * TODO 1.21: rename to {@code TagEntriesCommand}.
- * TODO 1.21: move to {@link slimeknights.mantle.command.tags}.
- */
+/** Command that dumps a tag into a JSON object. */
 public class DumpTagCommand {
   protected static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -122,7 +118,7 @@ public class DumpTagCommand {
     ResourceLocation name = context.getArgument("name", ResourceLocation.class);
     ResourceManager manager = context.getSource().getServer().getResourceManager();
 
-    ResourceLocation path = new ResourceLocation(name.getNamespace(), registry.folder() + "/" + name.getPath() + ".json");
+    ResourceLocation path = ResourceLocation.fromNamespaceAndPath(name.getNamespace(), registry.folder() + "/" + name.getPath() + ".json");
 
     // if the tag file does not exist, only error if the tag is unknown
     List<Resource> resources = manager.getResourceStack(path);
@@ -140,7 +136,7 @@ public class DumpTagCommand {
     switch (action) {
       case SAVE -> {
         // save creates a file in the data dump location of the tag at the proper path
-        Path output = DumpAllTagsCommand.getOutputFile(context).toPath().resolve(path.getNamespace() + "/" + path.getPath());
+        Path output = DumpAllTagsCommand.getOutputFile(context).resolve(path.getNamespace() + "/" + path.getPath());
         saveTag(list, output);
         context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_tag.success_log", regName, name, GeneratePackHelper.getOutputComponent(output)), true);
       }

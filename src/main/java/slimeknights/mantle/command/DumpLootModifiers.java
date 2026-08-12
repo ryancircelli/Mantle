@@ -17,7 +17,6 @@ import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.Mantle;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
@@ -27,8 +26,8 @@ import java.util.List;
 
 /** Command to dump global loot modifiers */
 public class DumpLootModifiers {
-  /** Resource location of the global loot manager "tag" */
-  protected static final ResourceLocation GLOBAL_LOOT_MODIFIERS = new ResourceLocation("forge", "loot_modifiers/global_loot_modifiers.json");
+  /** Resource location of the global loot manager "tag", now under the {@code neoforge} namespace rather than {@code forge} */
+  protected static final ResourceLocation GLOBAL_LOOT_MODIFIERS = ResourceLocation.fromNamespaceAndPath("neoforge", "loot_modifiers/global_loot_modifiers.json");
   /** Path for saving the loot modifiers */
   private static final String LOOT_MODIFIER_PATH = GLOBAL_LOOT_MODIFIERS.getNamespace() + "/" + GLOBAL_LOOT_MODIFIERS.getPath();
 
@@ -51,7 +50,7 @@ public class DumpLootModifiers {
   private static int run(CommandContext<CommandSourceStack> context, boolean saveFile) throws CommandSyntaxException {
     List<ResourceLocation> finalLocations = new ArrayList<>();
     ResourceManager manager = context.getSource().getServer().getResourceManager();
-    // logic based on forge logic for reading loot managers
+    // logic based on NeoForge's own logic for reading loot modifier lists
     for (Resource resource : manager.getResourceStack(GLOBAL_LOOT_MODIFIERS)) {
       try (Reader reader = resource.openAsReader()) {
         JsonObject json = GsonHelper.fromJson(DumpTagCommand.GSON, reader, JsonObject.class);
@@ -90,8 +89,7 @@ public class DumpLootModifiers {
     // if requested, save
     if (saveFile) {
       // save file
-      File output = new File(DumpAllTagsCommand.getOutputFile(context), LOOT_MODIFIER_PATH);
-      Path path = output.toPath();
+      Path path = DumpAllTagsCommand.getOutputFile(context).resolve(LOOT_MODIFIER_PATH);
       try {
         Files.createDirectories(path.getParent());
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
@@ -100,7 +98,7 @@ public class DumpLootModifiers {
       } catch (IOException ex) {
         Mantle.logger.error("Couldn't save global loot manager to {}", path, ex);
       }
-      context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_loot_modifiers.success_save", GeneratePackHelper.getOutputComponent(output)), true);
+      context.getSource().sendSuccess(() -> Component.translatable("command.mantle.dump_loot_modifiers.success_save", GeneratePackHelper.getOutputComponent(path)), true);
     } else {
       // print to console
       context.getSource().sendSuccess(() -> LOOT_MODIFIER_SUCCESS_LOG, true);
