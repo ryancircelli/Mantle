@@ -18,15 +18,6 @@ src/main/java/slimeknights/mantle/block/MantleWallHangingSignBlock.java
 src/main/java/slimeknights/mantle/block/MantleWallSignBlock.java
 src/main/java/slimeknights/mantle/block/RetexturedBlock.java
 src/main/java/slimeknights/mantle/block/StrippableLogBlock.java
-src/main/java/slimeknights/mantle/block/entity/DefaultRetexturedBlockEntity.java
-src/main/java/slimeknights/mantle/block/entity/INameableMenuProvider.java
-src/main/java/slimeknights/mantle/block/entity/IRetexturedBlockEntity.java
-src/main/java/slimeknights/mantle/block/entity/InventoryBlockEntity.java
-src/main/java/slimeknights/mantle/block/entity/MantleBlockEntity.java
-src/main/java/slimeknights/mantle/block/entity/MantleHangingSignBlockEntity.java
-src/main/java/slimeknights/mantle/block/entity/MantleSignBlockEntity.java
-src/main/java/slimeknights/mantle/block/entity/NameableBlockEntity.java
-src/main/java/slimeknights/mantle/block/entity/package-info.java
 src/main/java/slimeknights/mantle/block/fluid/BurningLiquidBlock.java
 src/main/java/slimeknights/mantle/block/fluid/MobEffectLiquidBlock.java
 src/main/java/slimeknights/mantle/block/fluid/package-info.java
@@ -263,7 +254,6 @@ src/main/java/slimeknights/mantle/plugin/jei/entity/EntityIngredientHelper.java
 src/main/java/slimeknights/mantle/plugin/jei/entity/EntityIngredientRenderer.java
 src/main/java/slimeknights/mantle/plugin/jei/entity/package-info.java
 src/main/java/slimeknights/mantle/plugin/jei/package-info.java
-src/main/java/slimeknights/mantle/registration/MantleRegistrations.java
 src/main/java/slimeknights/mantle/registration/adapter/BlockRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/adapter/ItemRegistryAdapter.java
 src/main/java/slimeknights/mantle/registration/deferred/BlockDeferredRegister.java
