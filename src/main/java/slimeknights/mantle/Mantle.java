@@ -1,8 +1,10 @@
 package slimeknights.mantle;
 
 import net.minecraft.Util;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -14,16 +16,8 @@ import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
 import slimeknights.mantle.config.Config;
-import slimeknights.mantle.fluid.transfer.EmptyFluidContainerTransfer;
-import slimeknights.mantle.fluid.transfer.EmptyFluidWithComponentsTransfer;
-import slimeknights.mantle.fluid.transfer.EmptyPotionTransfer;
-import slimeknights.mantle.fluid.transfer.FillFluidContainerTransfer;
-import slimeknights.mantle.fluid.transfer.FillFluidWithComponentsTransfer;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
-import slimeknights.mantle.fluid.transfer.RemovedTransferTypes;
 import slimeknights.mantle.network.MantleNetwork;
 import slimeknights.mantle.recipe.helper.TagPreference;
 
@@ -90,12 +84,7 @@ public class Mantle {
       // serializers, predicate loaders, block entity signs, the command argument type and the loot modifier
 
       // fluid container transfer
-      FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(EmptyFluidContainerTransfer.ID, EmptyFluidContainerTransfer.DESERIALIZER);
-      FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(FillFluidContainerTransfer.ID, FillFluidContainerTransfer.DESERIALIZER);
-      FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(EmptyFluidWithComponentsTransfer.ID, EmptyFluidWithComponentsTransfer.DESERIALIZER);
-      FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(FillFluidWithComponentsTransfer.ID, FillFluidWithComponentsTransfer.DESERIALIZER);
-      FluidContainerTransferManager.TRANSFER_LOADERS.registerDeserializer(EmptyPotionTransfer.ID, EmptyPotionTransfer.DESERIALIZER);
-      RemovedTransferTypes.register();
+      FluidContainerTransferManager.registerDefaults();
     }
   }
 

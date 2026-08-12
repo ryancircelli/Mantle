@@ -91,6 +91,19 @@ public class FluidContainerTransferManager extends SimpleJsonResourceReloadListe
     return this.containerItems;
   }
 
+  /**
+   * Registers Mantle's own transfer types, including the ones 1.21 removed.
+   * Call from a mod's {@code RegisterEvent}; Mantle does so itself.
+   */
+  public static void registerDefaults() {
+    TRANSFER_LOADERS.registerDeserializer(EmptyFluidContainerTransfer.ID, EmptyFluidContainerTransfer.DESERIALIZER);
+    TRANSFER_LOADERS.registerDeserializer(FillFluidContainerTransfer.ID, FillFluidContainerTransfer.DESERIALIZER);
+    TRANSFER_LOADERS.registerDeserializer(EmptyFluidWithComponentsTransfer.ID, EmptyFluidWithComponentsTransfer.DESERIALIZER);
+    TRANSFER_LOADERS.registerDeserializer(FillFluidWithComponentsTransfer.ID, FillFluidWithComponentsTransfer.DESERIALIZER);
+    TRANSFER_LOADERS.registerDeserializer(EmptyPotionTransfer.ID, EmptyPotionTransfer.DESERIALIZER);
+    RemovedTransferTypes.register();
+  }
+
   /** For internal use only */
   public void init() {
     NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, AddReloadListenerEvent.class, e -> {
