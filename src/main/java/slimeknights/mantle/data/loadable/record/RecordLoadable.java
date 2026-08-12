@@ -17,11 +17,13 @@ import com.mojang.datafixers.util.Function7;
 import com.mojang.datafixers.util.Function8;
 import com.mojang.datafixers.util.Function9;
 import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.LoadableMapCodec;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.DirectField;
 import slimeknights.mantle.data.loadable.field.RecordField;
@@ -29,6 +31,7 @@ import slimeknights.mantle.data.loadable.mapping.CompactLoadable;
 import slimeknights.mantle.data.loadable.mapping.MappedLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -132,6 +135,33 @@ public interface RecordLoadable<T> extends Loadable<T> {
     JsonObject json = new JsonObject();
     serialize(object, json);
     return OpsHelper.addAll(ops, builder, json);
+  }
+
+
+  /**
+   * Views this loadable as a {@link MapCodec}, the shape consumed by anything composing codecs out of fields such as
+   * {@link com.mojang.serialization.codecs.RecordCodecBuilder} and {@link com.mojang.serialization.Codec#dispatch}.
+   * <p>
+   * The codec reads and writes whichever format its caller passes rather than converting to a fixed one, and reports
+   * failures as a {@link com.mojang.serialization.DataResult} error instead of throwing.
+   * @return  Map codec backed by this loadable
+   * @apiNote  A loadable does not know which keys it reads, so the codec refuses an ops with
+   *           {@link DynamicOps#compressMaps()}. Use {@link #mapCodec(String...)} if you need one.
+   *           Note also this is the map view: use {@link #codec()} to keep any compact non-map form this loadable
+   *           supports.
+   */
+  default MapCodec<T> mapCodec() {
+    return new LoadableMapCodec<>(this);
+  }
+
+  /**
+   * Same as {@link #mapCodec()} but declares the keys this loadable reads and writes, allowing use with an ops
+   * compressing maps such as {@link com.mojang.serialization.JsonOps#COMPRESSED}.
+   * @param keys  Every key this loadable may read or write. Missing one silently drops it when compressed.
+   * @return  Map codec backed by this loadable
+   */
+  default MapCodec<T> mapCodec(String... keys) {
+    return new LoadableMapCodec<>(this, List.of(keys));
   }
 
 
