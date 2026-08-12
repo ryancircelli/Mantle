@@ -1,8 +1,10 @@
 package slimeknights.mantle;
 
 import net.minecraft.Util;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
@@ -11,10 +13,13 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import slimeknights.mantle.config.Config;
+import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
 import slimeknights.mantle.network.MantleNetwork;
+import slimeknights.mantle.recipe.helper.TagPreference;
 
 /**
  * Mantle
@@ -39,26 +44,20 @@ public class Mantle {
 
     instance = this;
 
-    // TODO(M-fluid): restore once slimeknights.mantle.fluid.transfer ports - FluidContainerTransferManager.INSTANCE.init();
+    FluidContainerTransferManager.INSTANCE.init();
     // TODO(M-datagen): restore once slimeknights.mantle.datagen ports - MantleTags.init();
 
     // packets are registered in common setup as they always were; the channel itself is not built until
     // RegisterPayloadHandlersEvent, which NeoForge fires after every setup event
-    modBus.addListener(EventPriority.NORMAL, false, FMLCommonSetupEvent.class, e -> MantleNetwork.registerPackets());
+    modBus.addListener(EventPriority.NORMAL, false, FMLCommonSetupEvent.class, this::commonSetup);
     modBus.addListener(EventPriority.NORMAL, false, RegisterPayloadHandlersEvent.class, MantleNetwork.INSTANCE::registerPayloads);
-    // TODO(M-command/util/recipe/loot): common setup also called MantleCommand.init(), OffhandCooldownTracker.init(),
-    // TagPreference.init() and LootTableInjector.init() - all still behind the frontier
+    modBus.addListener(EventPriority.NORMAL, false, RegisterEvent.class, this::register);
 
     // TODO(M-capability): restore once util/OffhandCooldownTracker ports (needs slimeknights.mantle.network)
     // bus.addListener(EventPriority.NORMAL, false, RegisterCapabilitiesEvent.class, this::registerCapabilities);
 
     // TODO(M-datagen): restore once slimeknights.mantle.datagen ports
     // bus.addListener(EventPriority.NORMAL, false, GatherDataEvent.class, this::gatherData);
-
-    // TODO(M-recipe/loot/predicate/command): restore once those packages port - register() wired most of Mantle's
-    // recipe conditions, ingredient serializers, fluid transfer deserializers, predicate loaders, block entity
-    // signs, the command argument type, and the loot modifier registration onto RegisterEvent.
-    // bus.addListener(EventPriority.NORMAL, false, RegisterEvent.class, this::register);
 
     // TODO(M-recipe): restore once slimeknights.mantle.recipe ports - MantleRecipes.init(modBus);
 
@@ -69,6 +68,24 @@ public class Mantle {
     // if (FMLEnvironment.dist == Dist.CLIENT) {
     //   ClientEvents.onConstruct();
     // }
+  }
+
+  private void commonSetup(FMLCommonSetupEvent event) {
+    MantleNetwork.registerPackets();
+    TagPreference.init();
+    // TODO(M-command/util/loot): common setup also called MantleCommand.init(), OffhandCooldownTracker.init()
+    // and LootTableInjector.init() - all still behind the frontier
+  }
+
+  private void register(RegisterEvent event) {
+    ResourceKey<?> key = event.getRegistryKey();
+    if (key == Registries.RECIPE_SERIALIZER) {
+      // TODO(M-recipe/loot/predicate/command): register() also wired Mantle's recipe conditions, ingredient
+      // serializers, predicate loaders, block entity signs, the command argument type and the loot modifier
+
+      // fluid container transfer
+      FluidContainerTransferManager.registerDefaults();
+    }
   }
 
   /**

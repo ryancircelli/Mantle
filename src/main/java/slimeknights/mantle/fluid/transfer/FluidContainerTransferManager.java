@@ -5,23 +5,26 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import lombok.Setter;
 import lombok.extern.log4j.Log4j2;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.common.crafting.conditions.ICondition.IContext;
-import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.event.OnDatapackSyncEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.conditions.ConditionalOps;
+import net.neoforged.neoforge.common.conditions.ICondition;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.fluids.FluidStack;
 import slimeknights.mantle.data.gson.GenericRegisteredSerializer;
 import slimeknights.mantle.network.MantleNetwork;
 import slimeknights.mantle.util.JsonHelper;
@@ -35,7 +38,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
-/** Logic for filling and emptying fluid containers that are not fluid handlers */
+/**
+ * Logic for filling and emptying fluid containers that are not fluid handlers
+ * @apiNote  Conditions on a transfer file are read through NeoForge's {@link ICondition} codec, so they live under the
+ *           {@code neoforge:conditions} key rather than the bare {@code conditions} key Forge's
+ *           {@code CraftingHelper.processConditions} read in 1.20. See the class' package documentation for the rest of
+ *           the datapack format delta.
+ */
 @Log4j2
 public class FluidContainerTransferManager extends SimpleJsonResourceReloadListener {
   /** Map of all modifier types that are expected to load in data packs */
@@ -43,7 +52,7 @@ public class FluidContainerTransferManager extends SimpleJsonResourceReloadListe
   /** Folder for saving the logic */
   public static final String FOLDER = "mantle/fluid_transfer";
   /** GSON instance */
-  public static final Gson GSON = (new GsonBuilder())
+  public static final Gson GSON = new GsonBuilder()
     .registerTypeAdapter(ResourceLocation.class, new ResourceLocation.Serializer())
     .registerTypeHierarchyAdapter(IFluidContainerTransfer.class, TRANSFER_LOADERS)
     .setPrettyPrinting()
@@ -59,8 +68,11 @@ public class FluidContainerTransferManager extends SimpleJsonResourceReloadListe
   @Setter @Nullable
   private Set<Item> containerItems = Collections.emptySet();
 
-  /** Condition context for tags */
-  private IContext context = IContext.EMPTY;
+  /**
+   * Ops used to test a file's conditions. NeoForge carries both the registries and the condition context inside the
+   * ops rather than passing the context alongside, so this is rebuilt from the reload event every reload.
+   */
+  private DynamicOps<JsonElement> conditionOps = conditionOps(RegistryAccess.EMPTY, ICondition.IContext.EMPTY);
 
   private FluidContainerTransferManager() {
     super(GSON, FOLDER);
@@ -79,23 +91,36 @@ public class FluidContainerTransferManager extends SimpleJsonResourceReloadListe
     return this.containerItems;
   }
 
+  /**
+   * Registers Mantle's own transfer types, including the ones 1.21 removed.
+   * Call from a mod's {@code RegisterEvent}; Mantle does so itself.
+   */
+  public static void registerDefaults() {
+    TRANSFER_LOADERS.registerDeserializer(EmptyFluidContainerTransfer.ID, EmptyFluidContainerTransfer.DESERIALIZER);
+    TRANSFER_LOADERS.registerDeserializer(FillFluidContainerTransfer.ID, FillFluidContainerTransfer.DESERIALIZER);
+    TRANSFER_LOADERS.registerDeserializer(EmptyFluidWithComponentsTransfer.ID, EmptyFluidWithComponentsTransfer.DESERIALIZER);
+    TRANSFER_LOADERS.registerDeserializer(FillFluidWithComponentsTransfer.ID, FillFluidWithComponentsTransfer.DESERIALIZER);
+    TRANSFER_LOADERS.registerDeserializer(EmptyPotionTransfer.ID, EmptyPotionTransfer.DESERIALIZER);
+    RemovedTransferTypes.register();
+  }
+
   /** For internal use only */
   public void init() {
-    MinecraftForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, AddReloadListenerEvent.class, e -> {
+    NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, AddReloadListenerEvent.class, e -> {
       e.addListener(this);
-      this.context = e.getConditionContext();
+      this.conditionOps = conditionOps(e.getRegistryAccess(), e.getConditionContext());
     });
-    MinecraftForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, OnDatapackSyncEvent.class, e -> JsonHelper.syncPackets(e, MantleNetwork.INSTANCE, new FluidContainerTransferPacket(this.getContainerItems())));
+    NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, OnDatapackSyncEvent.class, e -> JsonHelper.syncPackets(e, MantleNetwork.INSTANCE, new FluidContainerTransferPacket(this.getContainerItems())));
   }
 
   /** Loads transfer from JSON */
   @Nullable
   private IFluidContainerTransfer loadFluidTransfer(ResourceLocation key, JsonObject json) {
     try {
-      if (!json.has("conditions") || CraftingHelper.processConditions(GsonHelper.getAsJsonArray(json, "conditions"), context)) {
+      if (ICondition.conditionsMatched(conditionOps, json)) {
         return GSON.fromJson(json, IFluidContainerTransfer.class);
       }
-    } catch (JsonSyntaxException e) {
+    } catch (JsonSyntaxException | IllegalArgumentException e) {
       log.error("Failed to load fluid container transfer info from {}", key, e);
     }
     return null;
@@ -139,5 +164,10 @@ public class FluidContainerTransferManager extends SimpleJsonResourceReloadListe
       }
     }
     return null;
+  }
+
+  /** Creates the JSON ops a file's conditions are tested against, carrying both the registries and the context */
+  private static DynamicOps<JsonElement> conditionOps(RegistryAccess registries, ICondition.IContext context) {
+    return new ConditionalOps<>(RegistryOps.create(JsonOps.INSTANCE, registries), context);
   }
 }

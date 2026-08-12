@@ -2,6 +2,7 @@ package slimeknights.mantle.network;
 
 import net.minecraft.network.protocol.PacketFlow;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.fluid.transfer.FluidContainerTransferPacket;
 import slimeknights.mantle.network.packet.DropLecternBookPacket;
 import slimeknights.mantle.network.packet.OpenLecternBookPacket;
 import slimeknights.mantle.network.packet.UpdateHeldPagePacket;
@@ -33,7 +34,6 @@ public class MantleNetwork {
     // INSTANCE.registerPacket(OpenNamedBookPacket.ID, OpenNamedBookPacket.class, OpenNamedBookPacket::new, PacketFlow.CLIENTBOUND);
     // TODO(M-capability): restore once util/OffhandCooldownTracker ports
     // INSTANCE.registerPacket(SwingArmPacket.ID, SwingArmPacket.class, SwingArmPacket::new, PacketFlow.CLIENTBOUND);
-    // TODO(M-fluid): restore once slimeknights.mantle.fluid.transfer ports
-    // INSTANCE.registerPacket(FluidContainerTransferPacket.ID, FluidContainerTransferPacket.class, FluidContainerTransferPacket::new, PacketFlow.CLIENTBOUND);
+    INSTANCE.registerPacket(FluidContainerTransferPacket.ID, FluidContainerTransferPacket.class, FluidContainerTransferPacket::new, PacketFlow.CLIENTBOUND);
   }
 }
