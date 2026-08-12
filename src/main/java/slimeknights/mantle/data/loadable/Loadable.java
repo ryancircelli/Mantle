@@ -8,6 +8,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
 import org.jetbrains.annotations.ApiStatus.NonExtendable;
 import org.jetbrains.annotations.ApiStatus.OverrideOnly;
 import org.jetbrains.annotations.Contract;
@@ -33,7 +34,16 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
-/** Interface for a generic loadable object */
+/**
+ * Interface for a generic loadable object.
+ * <p>
+ * Loadables read and write two families of formats: gson directly, and any {@link DynamicOps} format generically.
+ * The gson methods are the abstract ones and the ops methods default to them, so an implementation only has to
+ * provide gson. Implementations able to read or write a format directly should override the ops methods and
+ * implement the gson ones by delegating to them with {@link com.mojang.serialization.JsonOps#INSTANCE}, which is what
+ * every loadable in this package does; keeping the gson methods abstract is what makes that safe, as the two families
+ * can never both fall through to each other.
+ */
 @SuppressWarnings("unused")  // API
 public interface Loadable<T> extends JsonDeserializer<T>, JsonSerializer<T>, Streamable<T> {
   /**
@@ -170,6 +180,48 @@ public interface Loadable<T> extends JsonDeserializer<T>, JsonSerializer<T>, Str
   @Contract("_, _, !null -> !null")
   default T getOrDefault(JsonObject parent, String key, @Nullable T defaultValue) {
     return getOrDefault(parent, key, defaultValue, TypedMap.EMPTY);
+  }
+
+  /**
+   * Gets then deserializes the given field of a map of an arbitrary format, throwing if it is missing.
+   * @param ops     Ops representing the format of the map
+   * @param parent  Parent to fetch the field from
+   * @param key     Field to get
+   * @param context Additional parsing context, used notably by recipe serializers to store the ID and serializer.
+   * @param <O>     Format of the map
+   * @return  Value, or throws if missing
+   * @throws JsonSyntaxException  If the field is missing or cannot be parsed.
+   */
+  @NonExtendable
+  default <O> T getIfPresent(DynamicOps<O> ops, MapLike<O> parent, String key, TypedMap context) {
+    O element = parent.get(key);
+    if (element != null) {
+      return convert(ops, element, key, context);
+    }
+    throw new JsonSyntaxException("Missing JSON field '" + key + "'");
+  }
+
+  /**
+   * Gets then deserializes the given field of a map of an arbitrary format, or returns a default value if its missing.
+   * A field set to the empty value of the format, such as a JSON null, counts as missing.
+   * @param ops           Ops representing the format of the map
+   * @param parent        Parent to fetch the field from
+   * @param key           Field to get
+   * @param defaultValue  Default value to fetch
+   * @param context       Additional parsing context, used notably by recipe serializers to store the ID and serializer.
+   * @param <O>           Format of the map
+   * @return  Value or default.
+   * @throws JsonSyntaxException  If the field cannot be parsed.
+   */
+  @NonExtendable
+  @Nullable
+  @Contract("_, _, _, !null, _ -> !null")
+  default <O> T getOrDefault(DynamicOps<O> ops, MapLike<O> parent, String key, @Nullable T defaultValue, TypedMap context) {
+    O element = parent.get(key);
+    if (!OpsHelper.isEmpty(ops, element)) {
+      return convert(ops, element, key, context);
+    }
+    return defaultValue;
   }
 
 
