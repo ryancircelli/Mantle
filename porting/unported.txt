@@ -258,7 +258,6 @@ src/main/java/slimeknights/mantle/item/BurnableTallBlockItem.java
 src/main/java/slimeknights/mantle/item/ConstantFluidContainerWrapper.java
 src/main/java/slimeknights/mantle/item/ContainerFoodItem.java
 src/main/java/slimeknights/mantle/item/EdibleItem.java
-src/main/java/slimeknights/mantle/item/ILecternBookItem.java
 src/main/java/slimeknights/mantle/item/LecternBookItem.java
 src/main/java/slimeknights/mantle/item/TooltipItem.java
 src/main/java/slimeknights/mantle/item/package-info.java
@@ -282,7 +281,6 @@ src/main/java/slimeknights/mantle/loot/function/RetexturedLootFunction.java
 src/main/java/slimeknights/mantle/loot/function/SetFluidLootFunction.java
 src/main/java/slimeknights/mantle/loot/function/package-info.java
 src/main/java/slimeknights/mantle/loot/package-info.java
-src/main/java/slimeknights/mantle/network/packet/OpenLecternBookPacket.java
 src/main/java/slimeknights/mantle/network/packet/OpenNamedBookPacket.java
 src/main/java/slimeknights/mantle/network/packet/SwingArmPacket.java
 src/main/java/slimeknights/mantle/plugin/jei/JEIPlugin.java

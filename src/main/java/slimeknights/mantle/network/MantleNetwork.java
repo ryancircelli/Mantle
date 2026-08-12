@@ -3,6 +3,7 @@ package slimeknights.mantle.network;
 import net.minecraft.network.protocol.PacketFlow;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.network.packet.DropLecternBookPacket;
+import slimeknights.mantle.network.packet.OpenLecternBookPacket;
 import slimeknights.mantle.network.packet.UpdateHeldPagePacket;
 import slimeknights.mantle.network.packet.UpdateInventoryPagePacket;
 import slimeknights.mantle.network.packet.UpdateLecternPagePacket;
@@ -23,6 +24,7 @@ public class MantleNetwork {
   public static void registerPackets() {
     // each packet is identified on the wire by the ID passed here, so these calls may be reordered or made
     // conditionally; only renaming one is a protocol change
+    INSTANCE.registerPacket(OpenLecternBookPacket.ID, OpenLecternBookPacket.class, OpenLecternBookPacket::new, PacketFlow.CLIENTBOUND);
     INSTANCE.registerPacket(UpdateHeldPagePacket.ID, UpdateHeldPagePacket.class, UpdateHeldPagePacket::new, PacketFlow.SERVERBOUND);
     INSTANCE.registerPacket(UpdateInventoryPagePacket.ID, UpdateInventoryPagePacket.class, UpdateInventoryPagePacket::new, PacketFlow.SERVERBOUND);
     INSTANCE.registerPacket(UpdateLecternPagePacket.ID, UpdateLecternPagePacket.class, UpdateLecternPagePacket::new, PacketFlow.SERVERBOUND);
