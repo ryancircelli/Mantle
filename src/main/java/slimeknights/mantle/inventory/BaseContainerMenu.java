@@ -13,8 +13,8 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.fml.loading.FMLEnvironment;
 import slimeknights.mantle.util.BlockEntityHelper;
 
 import javax.annotation.Nullable;
@@ -232,7 +232,7 @@ public class BaseContainerMenu<TILE extends BlockEntity> extends AbstractContain
         slot = this.slots.get(k);
         itemstack1 = slot.getItem();
 
-        if (!itemstack1.isEmpty() && ItemStack.isSameItemSameTags(stack, itemstack1) && this.canTakeItemForPickAll(stack, slot)) {
+        if (!itemstack1.isEmpty() && ItemStack.isSameItemSameComponents(stack, itemstack1) && this.canTakeItemForPickAll(stack, slot)) {
           int l = itemstack1.getCount() + stack.getCount();
           int limit = Math.min(stack.getMaxStackSize(), slot.getMaxStackSize(stack));
 
@@ -279,7 +279,7 @@ public class BaseContainerMenu<TILE extends BlockEntity> extends AbstractContain
       Slot slot = this.slots.get(k);
       ItemStack itemstack1 = slot.getItem();
 
-      // Forge: Make sure to respect isItemValid in the slot.
+      // Make sure to respect isItemValid in the slot.
       if (itemstack1.isEmpty() && slot.mayPlace(stack) && this.canTakeItemForPickAll(stack, slot)) {
         int limit = slot.getMaxStackSize(stack);
         ItemStack stack2 = stack.copy();
@@ -311,7 +311,9 @@ public class BaseContainerMenu<TILE extends BlockEntity> extends AbstractContain
   }
 
   /**
-   * Gets a tile entity from a packet buffer
+   * Gets a tile entity from a packet buffer. Only meaningful on the client - a menu built directly server side
+   * already has its tile - so the lookup itself is quarantined in {@link ClientOnly} the way {@code SafeClientAccess}
+   * does, keeping the client-only {@link Minecraft} reference out of a class the dedicated server also loads.
    * @param buf     Packet buffer instance
    * @param type    Tile entity class
    * @param <TILE>  Tile entity type
@@ -322,6 +324,17 @@ public class BaseContainerMenu<TILE extends BlockEntity> extends AbstractContain
     if (buf == null) {
       return null;
     }
-    return DistExecutor.unsafeCallWhenOn(Dist.CLIENT, () -> () -> BlockEntityHelper.get(type, Minecraft.getInstance().level, buf.readBlockPos()).orElse(null));
+    if (FMLEnvironment.dist == Dist.CLIENT) {
+      return ClientOnly.getTileEntityFromBuf(buf, type);
+    }
+    return null;
+  }
+
+  /** This class is only loaded on the client, so is safe to reference client only methods */
+  private static class ClientOnly {
+    @Nullable
+    private static <TILE extends BlockEntity> TILE getTileEntityFromBuf(FriendlyByteBuf buf, Class<TILE> type) {
+      return BlockEntityHelper.get(type, Minecraft.getInstance().level, buf.readBlockPos()).orElse(null);
+    }
   }
 }
