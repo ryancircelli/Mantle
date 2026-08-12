@@ -2,8 +2,9 @@ package slimeknights.mantle.data.loadable.field;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.crafting.conditions.ICondition.IContext;
+import net.neoforged.neoforge.common.conditions.ICondition.IContext;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.util.typed.TypedMap;
 import slimeknights.mantle.util.typed.TypedMap.Key;
@@ -23,6 +24,14 @@ public class ContextKey<T> implements Key<T> {
   public static final ContextKey<String> DEBUG = new ContextKey<>("debug info");
   /** Key for adding condition context, used in {@link slimeknights.mantle.data.loadable.mapping.ConditionalLoadable} */
   public static final ContextKey<IContext> CONDITION_CONTEXT = new ContextKey<>("condition context");
+  /**
+   * Key supplying the registries a loadable needs to read a registry backed value, such as a data component holding an
+   * enchantment. The preferred way to supply these is to hand the loadable a {@link net.minecraft.resources.RegistryOps}
+   * in the first place, as vanilla does on every datapack path; this key exists for a caller which has the registries
+   * but not control over the ops, and is consumed by
+   * {@link slimeknights.mantle.data.loadable.OpsHelper#withRegistries(com.mojang.serialization.DynamicOps, TypedMap)}.
+   */
+  public static final ContextKey<HolderLookup.Provider> REGISTRY_ACCESS = new ContextKey<>("registry access");
 
   /** Name of the field, used primarily for debug */
   @Getter

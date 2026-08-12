@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
@@ -78,7 +78,7 @@ public interface RecordField<T,P> {
    * @return  Parsed field value
    * @throws io.netty.handler.codec.DecoderException  If unable to decode a value from network
    */
-  T decode(FriendlyByteBuf buffer, TypedMap context);
+  T decode(RegistryFriendlyByteBuf buffer, TypedMap context);
 
   /**
    * Writes this field to the buffer
@@ -86,5 +86,5 @@ public interface RecordField<T,P> {
    * @param parent  Parent to read values from
    * @throws io.netty.handler.codec.EncoderException  If unable to encode a value to network
    */
-  void encode(FriendlyByteBuf buffer, P parent);
+  void encode(RegistryFriendlyByteBuf buffer, P parent);
 }

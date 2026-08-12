@@ -5,7 +5,7 @@ import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
@@ -81,12 +81,12 @@ public class LongLoadable implements Loadable<Long> {
   /* Networking */
 
   @Override
-  public Long decode(FriendlyByteBuf buffer, TypedMap context) {
+  public Long decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return var ? buffer.readVarLong() : buffer.readLong();
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, Long value) {
+  public void encode(RegistryFriendlyByteBuf buffer, Long value) {
     if (var) {
       buffer.writeVarLong(value);
     } else {

@@ -5,7 +5,7 @@ import com.google.gson.JsonSyntaxException;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.LoadableField;
@@ -88,7 +88,7 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
   }
 
   @Override
-  public Map<K,V> decode(FriendlyByteBuf buffer, TypedMap context) {
+  public Map<K,V> decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     int size = buffer.readVarInt();
     Map<K,V> builder = createBuilder(size);
     for (int i = 0; i < size; i++) {
@@ -100,7 +100,7 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, Map<K,V> map) {
+  public void encode(RegistryFriendlyByteBuf buffer, Map<K,V> map) {
     buffer.writeVarInt(map.size());
     for (Entry<K,V> entry : map.entrySet()) {
       keyLoadable.encode(buffer, entry.getKey());

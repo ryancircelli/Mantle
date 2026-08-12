@@ -8,6 +8,10 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.resources.RegistryOps;
+import slimeknights.mantle.data.loadable.field.ContextKey;
+import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -26,6 +30,34 @@ import java.util.stream.Stream;
 @SuppressWarnings("unused")  // API
 public class OpsHelper {
   private OpsHelper() {}
+
+
+  /* Registries */
+
+  /**
+   * Upgrades the passed ops to one able to read registry backed values, if the context supplies the registries.
+   * <p>
+   * A handful of 1.21 formats cannot be read without the registries behind them: a data component patch holding an
+   * enchantment, anything referencing a datapack registry. Vanilla threads those through the ops as a
+   * {@link RegistryOps}, and a loadable given one simply passes it along, which is the path every datapack load takes.
+   * This exists for the caller which holds the registries but was handed a plain ops, and supplies them through
+   * {@link ContextKey#REGISTRY_ACCESS} instead.
+   * @param ops      Ops the loadable was called with
+   * @param context  Loadable context, possibly holding {@link ContextKey#REGISTRY_ACCESS}
+   * @param <O>      Format of the value
+   * @return  The passed ops if it already reaches the registries or the context has none, otherwise a
+   *          {@link RegistryOps} over it.
+   */
+  public static <O> DynamicOps<O> withRegistries(DynamicOps<O> ops, TypedMap context) {
+    if (ops instanceof RegistryOps) {
+      return ops;
+    }
+    HolderLookup.Provider registries = context.get(ContextKey.REGISTRY_ACCESS);
+    if (registries != null) {
+      return registries.createSerializationContext(ops);
+    }
+    return ops;
+  }
 
 
   /* Reading */
@@ -150,7 +182,7 @@ public class OpsHelper {
   public static <O> JsonObject toJson(DynamicOps<O> ops, MapLike<O> map) {
     JsonObject json = new JsonObject();
     map.entries().forEach(entry -> json.add(
-      ops.getStringValue(entry.getFirst()).getOrThrow(false, ErrorFactory.JSON_SYNTAX_ERROR),
+      ops.getStringValue(entry.getFirst()).getOrThrow(ErrorFactory.JSON_SYNTAX_ERROR::create),
       toJson(ops, entry.getSecond())
     ));
     return json;

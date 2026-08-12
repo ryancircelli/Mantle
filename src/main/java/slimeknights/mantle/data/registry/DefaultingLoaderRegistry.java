@@ -5,7 +5,7 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.mojang.serialization.DynamicOps;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.DefaultingField;
 import slimeknights.mantle.data.loadable.field.LoadableField;
@@ -100,7 +100,7 @@ public class DefaultingLoaderRegistry<T extends IHaveLoader> extends GenericLoad
 
   @SuppressWarnings("unchecked")  // the cast is safe here as its just doing a map lookup, shouldn't cause harm if it fails. Besides, the loader has to extend T to work
   @Override
-  public void encode(FriendlyByteBuf buffer, T src) {
+  public void encode(RegistryFriendlyByteBuf buffer, T src) {
     if (src == defaultInstance) {
       loaders.encodeOptional(buffer, null);
       return;
@@ -111,7 +111,7 @@ public class DefaultingLoaderRegistry<T extends IHaveLoader> extends GenericLoad
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer, TypedMap context) {
+  public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     RecordLoadable<? extends T> loader = loaders.decodeOptional(buffer);
     if (loader == null) {
       return defaultInstance;

@@ -45,8 +45,8 @@ class GenericLoaderRegistryTest extends LoadableTest {
   /** Builds a registry containing both implementations */
   private static GenericLoaderRegistry<Shape> registry(boolean compact) {
     GenericLoaderRegistry<Shape> registry = new GenericLoaderRegistry<>("Shape", compact);
-    registry.register(new ResourceLocation("mantle", "sized"), Sized.LOADER);
-    registry.register(new ResourceLocation("mantle", "empty"), Empty.LOADER);
+    registry.register(ResourceLocation.fromNamespaceAndPath("mantle", "sized"), Sized.LOADER);
+    registry.register(ResourceLocation.fromNamespaceAndPath("mantle", "empty"), Empty.LOADER);
     return registry;
   }
 

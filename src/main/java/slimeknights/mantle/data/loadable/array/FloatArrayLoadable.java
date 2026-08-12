@@ -1,7 +1,7 @@
 package slimeknights.mantle.data.loadable.array;
 
 import com.mojang.serialization.DynamicOps;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.field.DefaultingField;
 import slimeknights.mantle.data.loadable.field.LoadableField;
@@ -45,7 +45,7 @@ public record FloatArrayLoadable(Loadable<Float> base, int minSize, int maxSize)
   }
 
   @Override
-  public float[] decode(FriendlyByteBuf buffer, TypedMap context) {
+  public float[] decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     int max = buffer.readVarInt();
     float[] array = new float[max];
     for (int i = 0; i < max; i++) {
@@ -55,7 +55,7 @@ public record FloatArrayLoadable(Loadable<Float> base, int minSize, int maxSize)
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, float[] array) {
+  public void encode(RegistryFriendlyByteBuf buffer, float[] array) {
     buffer.writeVarInt(array.length);
     for (float element : array) {
       base.encode(buffer, element);

@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.Nullable;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -42,10 +42,10 @@ public record UnsyncedField<T,P>(LoadableField<T,P> field, @Nullable T clientVal
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer, TypedMap context) {
+  public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return clientValue;
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, P parent) {}
+  public void encode(RegistryFriendlyByteBuf buffer, P parent) {}
 }

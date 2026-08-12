@@ -117,7 +117,7 @@ public interface RecordLoadable<T> extends Loadable<T> {
    */
   @Override
   default <O> O serialize(DynamicOps<O> ops, T object) {
-    return serialize(ops, object, ops.mapBuilder()).build(ops.empty()).getOrThrow(false, ErrorFactory.RUNTIME);
+    return serialize(ops, object, ops.mapBuilder()).build(ops.empty()).getOrThrow(ErrorFactory.RUNTIME::create);
   }
 
   /**

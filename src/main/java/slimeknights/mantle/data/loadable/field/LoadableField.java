@@ -3,7 +3,7 @@ package slimeknights.mantle.data.loadable.field;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapLike;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import org.jetbrains.annotations.ApiStatus.NonExtendable;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
@@ -63,9 +63,9 @@ public interface LoadableField<T,P> extends RecordField<T,P> {
     return get(json, TypedMap.EMPTY);
   }
 
-  /** Same as {@link #decode(FriendlyByteBuf, TypedMap)} but passes {@link TypedMap#EMPTY} for context. */
+  /** Same as {@link #decode(RegistryFriendlyByteBuf, TypedMap)} but passes {@link TypedMap#EMPTY} for context. */
   @NonExtendable
-  default T decode(FriendlyByteBuf buffer) {
+  default T decode(RegistryFriendlyByteBuf buffer) {
     return decode(buffer, TypedMap.EMPTY);
   }
 }

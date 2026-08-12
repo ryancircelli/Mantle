@@ -6,7 +6,7 @@ import com.google.gson.JsonPrimitive;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.StringTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
@@ -35,12 +35,12 @@ class LoadableCompatibilityTest extends LoadableTest {
     }
 
     @Override
-    public String decode(FriendlyByteBuf buffer, TypedMap context) {
+    public String decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return prefix + buffer.readUtf();
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, String value) {
+    public void encode(RegistryFriendlyByteBuf buffer, String value) {
       buffer.writeUtf(value.substring(prefix.length()));
     }
   }
@@ -58,12 +58,12 @@ class LoadableCompatibilityTest extends LoadableTest {
     }
 
     @Override
-    public String decode(FriendlyByteBuf buffer, TypedMap context) {
+    public String decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return buffer.readUtf();
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, String value) {
+    public void encode(RegistryFriendlyByteBuf buffer, String value) {
       buffer.writeUtf(value);
     }
   }

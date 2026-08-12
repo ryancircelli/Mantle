@@ -1,8 +1,10 @@
 package slimeknights.mantle.item.data;
 
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 
 import javax.annotation.Nullable;
 import java.util.LinkedHashMap;
@@ -79,26 +81,21 @@ class BufferedDataEditor implements DataEditor {
     if (pending.isEmpty() || stack.isEmpty()) {
       return stack;
     }
-    CompoundTag tag = stack.getTag();
+    // work on a copy of the component's compound, then hand the whole thing back: CustomData is immutable to everyone
+    // outside its own package, and this is the one place the editor is allowed to be visible
+    CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
     for (Entry<String,Tag> entry : pending.entrySet()) {
       Tag value = entry.getValue();
       if (value == null) {
-        if (tag != null) {
-          tag.remove(entry.getKey());
-        }
+        tag.remove(entry.getKey());
       } else {
-        if (tag == null) {
-          tag = stack.getOrCreateTag();
-        }
         // copy so applying this editor again does not give two stacks the same entry to change out from under each other
         tag.put(entry.getKey(), value.copy());
       }
     }
-    // an empty tag is not the same as no tag, it stops the stack from stacking with a plain one. vanilla drops it in
-    // the same spot, see ItemStack#removeTagKey
-    if (tag != null && tag.isEmpty()) {
-      stack.setTag(null);
-    }
+    // an empty component is not the same as no component, it stops the stack from stacking with a plain one.
+    // CustomData#set drops it in exactly that case, which is also why a pure removal never creates one
+    CustomData.set(DataComponents.CUSTOM_DATA, stack, tag);
     return stack;
   }
 

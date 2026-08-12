@@ -12,8 +12,8 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.gson.GenericRegisteredSerializer.IJsonSerializable;
 import slimeknights.mantle.data.registry.GenericLoaderRegistry;
+import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.registry.NamedComponentRegistry;
-import slimeknights.mantle.util.JsonHelper;
 
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -39,7 +39,7 @@ public class GenericRegisteredSerializer<T extends IJsonSerializable> implements
   @Override
   public T deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
     JsonObject object = GsonHelper.convertToJsonObject(json, "transformer");
-    ResourceLocation type = JsonHelper.getResourceLocation(object, "type");
+    ResourceLocation type = Loadables.RESOURCE_LOCATION.getIfPresent(object, "type");
     JsonDeserializer<? extends T> deserializer = deserializers.get(type);
     if (deserializer == null) {
       throw new JsonSyntaxException("Unknown serializer " + type);

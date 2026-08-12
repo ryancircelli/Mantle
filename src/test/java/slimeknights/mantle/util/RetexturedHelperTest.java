@@ -27,7 +27,7 @@ class RetexturedHelperTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     CompoundTag tag = new CompoundTag();
     tag.putString("texture", "minecraft:dirt");
-    stack.setTag(tag);
+    setCustomData(stack, tag);
 
     assertThat(RetexturedHelper.getTexture(stack)).isEqualTo(Blocks.DIRT);
     assertThat(RetexturedHelper.getTextureName(stack)).isEqualTo("minecraft:dirt");
@@ -47,7 +47,7 @@ class RetexturedHelperTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     CompoundTag tag = new CompoundTag();
     tag.putString("texture", "not a valid: id");
-    stack.setTag(tag);
+    setCustomData(stack, tag);
     assertThat(RetexturedHelper.getTexture(stack)).isEqualTo(Blocks.AIR);
   }
 
@@ -56,7 +56,7 @@ class RetexturedHelperTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     RetexturedHelper.setTexture(stack, Blocks.DIRT);
 
-    CompoundTag tag = stack.getTag();
+    CompoundTag tag = getCustomData(stack);
     assertThat(tag).isNotNull();
     assertThat(tag.getAllKeys()).containsExactly("texture");
     assertThat(tag.get("texture")).isEqualTo(StringTag.valueOf("minecraft:dirt"));
@@ -67,7 +67,7 @@ class RetexturedHelperTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     RetexturedHelper.setTexture(stack, "minecraft:dirt");
 
-    CompoundTag tag = stack.getTag();
+    CompoundTag tag = getCustomData(stack);
     assertThat(tag).isNotNull();
     assertThat(tag.getAllKeys()).containsExactly("texture");
     assertThat(tag.get("texture")).isEqualTo(StringTag.valueOf("minecraft:dirt"));
@@ -77,40 +77,40 @@ class RetexturedHelperTest extends BaseMcTest {
   void setTexture_airRemovesTheEntryAndDropsTheTag() {
     ItemStack stack = new ItemStack(Items.STONE);
     RetexturedHelper.setTexture(stack, Blocks.DIRT);
-    assertThat(stack.hasTag()).isTrue();
+    assertThat(hasCustomData(stack)).isTrue();
 
     RetexturedHelper.setTexture(stack, Blocks.AIR);
-    assertThat(stack.hasTag()).isFalse();
+    assertThat(hasCustomData(stack)).isFalse();
   }
 
   @Test
   void setTexture_emptyStringRemovesTheEntryAndDropsTheTag() {
     ItemStack stack = new ItemStack(Items.STONE);
     RetexturedHelper.setTexture(stack, "minecraft:dirt");
-    assertThat(stack.hasTag()).isTrue();
+    assertThat(hasCustomData(stack)).isTrue();
 
     RetexturedHelper.setTexture(stack, "");
-    assertThat(stack.hasTag()).isFalse();
+    assertThat(hasCustomData(stack)).isFalse();
   }
 
   @Test
   void setTexture_onATaglessStackWithNoTextureDoesNothing() {
     ItemStack stack = new ItemStack(Items.STONE);
     RetexturedHelper.setTexture(stack, Blocks.AIR);
-    assertThat(stack.hasTag()).isFalse();
+    assertThat(hasCustomData(stack)).isFalse();
   }
 
   @Test
   void setTexture_keepsUnrelatedEntries() {
     ItemStack stack = new ItemStack(Items.STONE);
-    CompoundTag tag = stack.getOrCreateTag();
+    CompoundTag tag = getOrCreateCustomData(stack);
     tag.putString("other_mod:their_key", "value");
 
     RetexturedHelper.setTexture(stack, Blocks.DIRT);
-    assertThat(stack.getTag().getAllKeys()).containsExactlyInAnyOrder("texture", "other_mod:their_key");
+    assertThat(getCustomData(stack).getAllKeys()).containsExactlyInAnyOrder("texture", "other_mod:their_key");
 
     RetexturedHelper.setTexture(stack, Blocks.AIR);
-    assertThat(stack.getTag().getAllKeys()).containsExactly("other_mod:their_key");
+    assertThat(getCustomData(stack).getAllKeys()).containsExactly("other_mod:their_key");
   }
 
   @Test

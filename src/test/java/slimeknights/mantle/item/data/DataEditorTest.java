@@ -4,7 +4,7 @@ import com.google.gson.JsonElement;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** Tests the write side of the item data API */
 class DataEditorTest extends BaseMcTest {
   private static ResourceLocation id(String path) {
-    return new ResourceLocation("mantle_test", "editor_" + path);
+    return ResourceLocation.fromNamespaceAndPath("mantle_test", "editor_" + path);
   }
 
   /** Loadable whose empty string writes nothing at all, the case where a value has no entry to store */
@@ -49,12 +49,12 @@ class DataEditorTest extends BaseMcTest {
     }
 
     @Override
-    public String decode(FriendlyByteBuf buffer, TypedMap context) {
+    public String decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return buffer.readUtf();
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, String value) {
+    public void encode(RegistryFriendlyByteBuf buffer, String value) {
       buffer.writeUtf(value);
     }
   };
@@ -78,7 +78,7 @@ class DataEditorTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     CompoundTag foreign = new CompoundTag();
     foreign.putInt("their_value", 42);
-    CompoundTag tag = stack.getOrCreateTag();
+    CompoundTag tag = getOrCreateCustomData(stack);
     tag.put(FOREIGN_NAME, foreign);
     tag.putString("Legacy", "an entry with no owner at all");
     return stack;
@@ -92,7 +92,7 @@ class DataEditorTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     DataEditor editor = DataEditor.edit(stack);
     editor.set(NAME, "hello");
-    assertThat(stack.hasTag()).as("the stack must not even gain a tag before apply").isFalse();
+    assertThat(hasCustomData(stack)).as("the stack must not even gain a tag before apply").isFalse();
     assertThat(DataView.of(stack).get(NAME)).isNull();
 
     assertThat(editor.apply(stack)).isSameAs(stack);
@@ -102,19 +102,19 @@ class DataEditorTest extends BaseMcTest {
   @Test
   void setOnAnExistingTagIsNotVisibleUntilApply() {
     ItemStack stack = foreignStack();
-    CompoundTag before = stack.getTag().copy();
+    CompoundTag before = getCustomData(stack).copy();
     DataEditor editor = DataEditor.edit(stack).set(NAME, "hello").set(COUNT, 3);
-    assertThat(stack.getTag()).isEqualTo(before);
+    assertThat(getCustomData(stack)).isEqualTo(before);
 
     editor.apply(stack);
-    assertThat(stack.getTag()).isNotEqualTo(before);
+    assertThat(getCustomData(stack)).isNotEqualTo(before);
     assertThat(DataView.of(stack).get(NAME)).isEqualTo("hello");
   }
 
   @Test
   void removeIsNotVisibleUntilApply() {
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString(NAME.getName(), "hello");
+    getOrCreateCustomData(stack).putString(NAME.getName(), "hello");
     DataEditor editor = DataEditor.edit(stack).remove(NAME);
     assertThat(DataView.of(stack).get(NAME)).isEqualTo("hello");
 
@@ -147,7 +147,7 @@ class DataEditorTest extends BaseMcTest {
   @Test
   void removeThenSetKeepsTheValue() {
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString(NAME.getName(), "old");
+    getOrCreateCustomData(stack).putString(NAME.getName(), "old");
     DataEditor editor = DataEditor.edit(stack).remove(NAME).set(NAME, "new");
     assertThat(editor.get(NAME)).isEqualTo("new");
     editor.apply(stack);
@@ -157,7 +157,7 @@ class DataEditorTest extends BaseMcTest {
   @Test
   void setThenRemoveDropsTheValue() {
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString(NAME.getName(), "old");
+    getOrCreateCustomData(stack).putString(NAME.getName(), "old");
     DataEditor editor = DataEditor.edit(stack).set(NAME, "new").remove(NAME);
     assertThat(editor.get(NAME)).isNull();
     assertThat(editor.has(NAME)).isFalse();
@@ -168,7 +168,7 @@ class DataEditorTest extends BaseMcTest {
   @Test
   void removeHidesTheStacksValue() {
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString(NAME.getName(), "hello");
+    getOrCreateCustomData(stack).putString(NAME.getName(), "hello");
     DataEditor editor = DataEditor.edit(stack).remove(NAME);
     assertThat(editor.get(NAME)).isNull();
     assertThat(editor.getStrict(NAME)).isNull();
@@ -179,7 +179,7 @@ class DataEditorTest extends BaseMcTest {
   @Test
   void editStackReadsThroughToTheStack() {
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString(NAME.getName(), "hello");
+    getOrCreateCustomData(stack).putString(NAME.getName(), "hello");
     DataEditor editor = DataEditor.edit(stack).set(COUNT, 1);
     assertThat(editor.get(NAME)).isEqualTo("hello");
     assertThat(editor.has(NAME)).isTrue();
@@ -188,7 +188,7 @@ class DataEditorTest extends BaseMcTest {
   @Test
   void editWithNoStackReadsNothing() {
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString(NAME.getName(), "hello");
+    getOrCreateCustomData(stack).putString(NAME.getName(), "hello");
     DataEditor editor = DataEditor.edit();
     assertThat(editor.get(NAME)).isNull();
     assertThat(editor.has(NAME)).isFalse();
@@ -217,7 +217,7 @@ class DataEditorTest extends BaseMcTest {
     ItemStack stack = foreignStack();
     DataEditor.edit(stack).set(NAME, "hello").set(COUNT, 3).apply(stack);
 
-    CompoundTag tag = stack.getTag();
+    CompoundTag tag = getCustomData(stack);
     assertThat(tag.getCompound(FOREIGN_NAME).getInt("their_value")).isEqualTo(42);
     assertThat(tag.getString("Legacy")).isEqualTo("an entry with no owner at all");
     assertThat(tag.getAllKeys()).containsExactlyInAnyOrder(FOREIGN_NAME, "Legacy", NAME.getName(), COUNT.getName());
@@ -229,7 +229,7 @@ class DataEditorTest extends BaseMcTest {
     DataEditor.edit(stack).set(NAME, "hello").apply(stack);
     DataEditor.edit(stack).remove(NAME).apply(stack);
 
-    CompoundTag tag = stack.getTag();
+    CompoundTag tag = getCustomData(stack);
     assertThat(tag.getCompound(FOREIGN_NAME).getInt("their_value")).isEqualTo(42);
     assertThat(tag.getAllKeys()).containsExactlyInAnyOrder(FOREIGN_NAME, "Legacy");
   }
@@ -237,9 +237,9 @@ class DataEditorTest extends BaseMcTest {
   @Test
   void removingAKeyItDoesNotHaveChangesNothing() {
     ItemStack stack = foreignStack();
-    CompoundTag before = stack.getTag().copy();
+    CompoundTag before = getCustomData(stack).copy();
     DataEditor.edit(stack).remove(NAME).apply(stack);
-    assertThat(stack.getTag()).isEqualTo(before);
+    assertThat(getCustomData(stack)).isEqualTo(before);
   }
 
 
@@ -249,23 +249,23 @@ class DataEditorTest extends BaseMcTest {
   void applyWithNoChangesLeavesTheStackAlone() {
     ItemStack stack = new ItemStack(Items.STONE);
     DataEditor.edit(stack).apply(stack);
-    assertThat(stack.hasTag()).isFalse();
+    assertThat(hasCustomData(stack)).isFalse();
   }
 
   @Test
   void applyWithOnlyRemovalsCreatesNoTag() {
     ItemStack stack = new ItemStack(Items.STONE);
     DataEditor.edit(stack).remove(NAME).remove(COUNT).apply(stack);
-    assertThat(stack.hasTag()).as("an empty tag would stop the stack from stacking with a plain one").isFalse();
+    assertThat(hasCustomData(stack)).as("an empty tag would stop the stack from stacking with a plain one").isFalse();
   }
 
   @Test
   void applyDroppingTheLastValueDropsTheTag() {
     ItemStack stack = new ItemStack(Items.STONE);
     DataEditor.edit(stack).set(NAME, "hello").apply(stack);
-    assertThat(stack.hasTag()).isTrue();
+    assertThat(hasCustomData(stack)).isTrue();
     DataEditor.edit(stack).remove(NAME).apply(stack);
-    assertThat(stack.hasTag()).isFalse();
+    assertThat(hasCustomData(stack)).isFalse();
   }
 
   @Test
@@ -273,7 +273,7 @@ class DataEditorTest extends BaseMcTest {
     // the empty stack is shared by everything holding nothing, writing to it would give the data to all of them
     ItemStack stack = ItemStack.EMPTY;
     assertThat(DataEditor.edit().set(NAME, "hello").apply(stack)).isSameAs(stack);
-    assertThat(stack.hasTag()).isFalse();
+    assertThat(hasCustomData(stack)).isFalse();
   }
 
 
@@ -288,7 +288,7 @@ class DataEditorTest extends BaseMcTest {
     ItemStack second = editor.apply(new ItemStack(Items.STONE));
 
     // changing what one stack stores must not reach the other
-    first.getTag().getCompound(NBT.getName()).putInt("value", 99);
+    getCustomData(first).getCompound(NBT.getName()).putInt("value", 99);
     assertThat(DataView.of(second).get(NBT).getInt("value")).isEqualTo(1);
   }
 
@@ -330,7 +330,7 @@ class DataEditorTest extends BaseMcTest {
     // and the failed set left nothing behind, on the editor or the stack
     assertThat(editor.has(SHORT_NAME)).isFalse();
     assertThat(editor.apply(stack)).isSameAs(stack);
-    assertThat(stack.hasTag()).isFalse();
+    assertThat(hasCustomData(stack)).isFalse();
   }
 
   @Test
@@ -344,6 +344,6 @@ class DataEditorTest extends BaseMcTest {
     assertThat(editor.has(OPTIONAL)).isFalse();
     editor.apply(stack);
     assertThat(DataView.of(stack).has(OPTIONAL)).isFalse();
-    assertThat(stack.hasTag()).isFalse();
+    assertThat(hasCustomData(stack)).isFalse();
   }
 }

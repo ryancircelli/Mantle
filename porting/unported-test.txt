@@ -6,26 +6,8 @@
 
 src/test/java/slimeknights/mantle/MantleEventsTest.java
 src/test/java/slimeknights/mantle/client/book/BookHelperTest.java
-src/test/java/slimeknights/mantle/data/loadable/CollectionLoadableTest.java
-src/test/java/slimeknights/mantle/data/loadable/CommonLoadableTest.java
-src/test/java/slimeknights/mantle/data/loadable/LoadableBootstrapTest.java
-src/test/java/slimeknights/mantle/data/loadable/LoadableCodecBenchmark.java
-src/test/java/slimeknights/mantle/data/loadable/LoadableCodecTest.java
-src/test/java/slimeknights/mantle/data/loadable/LoadableCompatibilityTest.java
-src/test/java/slimeknights/mantle/data/loadable/MappingLoadableTest.java
-src/test/java/slimeknights/mantle/data/loadable/PrimitiveLoadableTest.java
-src/test/java/slimeknights/mantle/data/loadable/RecordLoadableTest.java
-src/test/java/slimeknights/mantle/data/registry/GenericLoaderRegistryTest.java
-src/test/java/slimeknights/mantle/item/data/DataEditorTest.java
-src/test/java/slimeknights/mantle/item/data/DataKeyTest.java
-src/test/java/slimeknights/mantle/item/data/DataViewTest.java
 src/test/java/slimeknights/mantle/network/MantlePacketWireTest.java
 src/test/java/slimeknights/mantle/network/PacketDispatchTest.java
 src/test/java/slimeknights/mantle/network/PacketRegistryTest.java
 src/test/java/slimeknights/mantle/network/TestPacketContext.java
-src/test/java/slimeknights/mantle/test/BaseMcTest.java
-src/test/java/slimeknights/mantle/test/LoadableTest.java
-src/test/java/slimeknights/mantle/test/TestWorldVersion.java
-src/test/java/slimeknights/mantle/test/package-info.java
 src/test/java/slimeknights/mantle/util/LogicHelperTest.java
-src/test/java/slimeknights/mantle/util/RetexturedHelperTest.java

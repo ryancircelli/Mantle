@@ -7,8 +7,8 @@ import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import io.netty.handler.codec.EncoderException;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -25,7 +25,13 @@ import javax.annotation.Nullable;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-/** Loadable for an item stack */
+/**
+ * Loadable for an item stack.
+ * @apiNote  The variants named {@code NBT} carry a {@link DataComponentPatch} in 1.21 rather than a compound tag, under
+ *           a field named {@code components} rather than {@code nbt}. An item's extra data is components now, so the
+ *           payload is a different shape either way; naming the field as vanilla's own item stack format does is the
+ *           only reading of it which is not actively misleading. See {@link DataComponentsLoadable}.
+ */
 @SuppressWarnings("unused")  // API
 public class ItemStackLoadable {
   private ItemStackLoadable() {}
@@ -46,8 +52,8 @@ public class ItemStackLoadable {
   private static final LoadableField<Item,ItemStack> ITEM = Loadables.ITEM.defaultField("item", Items.AIR, false, ITEM_GETTER);
   /** Field for item stack count that allows empty */
   private static final LoadableField<Integer,ItemStack> COUNT = IntLoadable.FROM_ZERO.defaultField("count", 1, true, ItemStack::getCount);
-  /** Field for item stack count that allows empty */
-  private static final LoadableField<CompoundTag,ItemStack> NBT = NBTLoadable.ALLOW_STRING.nullableField("nbt", ItemStack::getTag);
+  /** Field for the components which differ from the item's defaults */
+  private static final LoadableField<DataComponentPatch,ItemStack> COMPONENTS = DataComponentsLoadable.INSTANCE.defaultField("components", DataComponentPatch.EMPTY, false, ItemStack::getComponentsPatch);
 
 
   /* Optional */
@@ -75,13 +81,13 @@ public class ItemStackLoadable {
   /* Helpers */
 
   /** Makes an item stack from the given parameters */
-  private static ItemStack makeStack(Item item, int count, @Nullable CompoundTag nbt) {
+  private static ItemStack makeStack(Item item, int count, @Nullable DataComponentPatch components) {
     if (item == Items.AIR || count == 0) {
       return ItemStack.EMPTY;
     }
     ItemStack stack = new ItemStack(item, count);
-    if (nbt != null) {
-      stack.setTag(nbt);
+    if (components != null && !components.isEmpty()) {
+      stack.applyComponents(components);
     }
     return stack;
   }
@@ -96,7 +102,7 @@ public class ItemStackLoadable {
     return loadable.validate(NOT_EMPTY);
   }
 
-  /** Loadable for an item stack with NBT, requires special logic due to forges share tags */
+  /** Loadable for an item stack with components, requires special logic for the compact form */
   private enum NBTStack implements RecordLoadable<ItemStack> {
     /** Reads count from JSON */
     READ_COUNT,
@@ -112,7 +118,7 @@ public class ItemStackLoadable {
       if (this == READ_COUNT) {
         count = COUNT.get(json, context);
       }
-      return makeStack(ITEM.get(json, context), count, NBT.get(json, context));
+      return makeStack(ITEM.get(json, context), count, COMPONENTS.get(json, context));
     }
 
     @Override
@@ -121,7 +127,7 @@ public class ItemStackLoadable {
       if (this == READ_COUNT) {
         count = COUNT.get(ops, map, context);
       }
-      return makeStack(ITEM.get(ops, map, context), count, NBT.get(ops, map, context));
+      return makeStack(ITEM.get(ops, map, context), count, COMPONENTS.get(ops, map, context));
     }
 
     @Override
@@ -130,7 +136,7 @@ public class ItemStackLoadable {
       if (this == READ_COUNT) {
         COUNT.serialize(stack, json);
       }
-      NBT.serialize(stack, json);
+      COMPONENTS.serialize(stack, json);
     }
 
     @Override
@@ -139,7 +145,7 @@ public class ItemStackLoadable {
       if (this == READ_COUNT) {
         builder = COUNT.serialize(ops, stack, builder);
       }
-      return NBT.serialize(ops, stack, builder);
+      return COMPONENTS.serialize(ops, stack, builder);
     }
 
 
@@ -165,7 +171,7 @@ public class ItemStackLoadable {
 
     @Override
     public <O> O serialize(DynamicOps<O> ops, ItemStack stack) {
-      if ((this == FIXED_COUNT || stack.getCount() == 1) && !stack.hasTag()) {
+      if ((this == FIXED_COUNT || stack.getCount() == 1) && stack.isComponentsPatchEmpty()) {
         return OPTIONAL_ITEM.serialize(ops, stack);
       }
       return RecordLoadable.super.serialize(ops, stack);
@@ -175,30 +181,24 @@ public class ItemStackLoadable {
     /* Buffer */
 
     @Override
-    public ItemStack decode(FriendlyByteBuf buffer, TypedMap context) {
-      // not using makeItemStack as we need to set the share tag NBT here
+    public ItemStack decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       Item item = ITEM.decode(buffer, context);
       int count = 1;
       if (this == READ_COUNT) {
         count = COUNT.decode(buffer, context);
       }
-      CompoundTag nbt = buffer.readNbt();
-      // not using make stack because we want to set share tag
-      if (item == Items.AIR || count <= 0) {
-        return ItemStack.EMPTY;
-      }
-      ItemStack stack = new ItemStack(item, count);
-      stack.readShareTag(nbt);
-      return stack;
+      // the patch has to be read whether or not the stack is empty, as it is on the buffer either way
+      DataComponentPatch components = COMPONENTS.decode(buffer, context);
+      return makeStack(item, count, components);
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, ItemStack stack) throws EncoderException {
+    public void encode(RegistryFriendlyByteBuf buffer, ItemStack stack) throws EncoderException {
       ITEM.encode(buffer, stack);
       if (this == READ_COUNT) {
         COUNT.encode(buffer, stack);
       }
-      buffer.writeNbt(stack.getShareTag());
+      COMPONENTS.encode(buffer, stack);
     }
   }
 }

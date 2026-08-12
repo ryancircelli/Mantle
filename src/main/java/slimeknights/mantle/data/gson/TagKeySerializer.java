@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.TagKey;
-import slimeknights.mantle.util.JsonHelper;
+import slimeknights.mantle.data.loadable.Loadables;
 
 import java.lang.reflect.Type;
 
@@ -22,7 +22,7 @@ public class TagKeySerializer<T> implements JsonSerializer<TagKey<T>>, JsonDeser
 
   @Override
   public TagKey<T> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-    return TagKey.create(registry, JsonHelper.convertToResourceLocation(json, "tag"));
+    return TagKey.create(registry, Loadables.RESOURCE_LOCATION.convert(json, "tag"));
   }
 
   @Override
