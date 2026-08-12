@@ -247,8 +247,13 @@ neoForge {
         }
     }
 
-    // neoForge.unitTest (which puts a loaded Minecraft on the test classpath) stays off
-    // while every test is behind the porting frontier. It comes back with the tests.
+    // Puts a loaded Minecraft on the test classpath and bootstraps FML around JUnit, which is what lets the
+    // serialization tests call Bootstrap.bootStrap() and reach the real registries. testedMod is the mod whose
+    // classes the tests belong to, so the test source set is loaded as part of it rather than as a separate mod.
+    unitTest {
+        enable()
+        testedMod = mods.mantle
+    }
 }
 
 dependencies {

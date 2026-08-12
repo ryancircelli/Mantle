@@ -9,7 +9,8 @@ import com.mojang.serialization.JsonOps;
 import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.neoforged.neoforge.network.connection.ConnectionType;
 import slimeknights.mantle.data.loadable.Loadable;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,9 +43,14 @@ public abstract class LoadableTest extends BaseMcTest {
     assertThat(loadable.convert(NbtOps.INSTANCE, tag, KEY)).as("nbt round trip of %s", tag).isEqualTo(value);
   }
 
+  /** {@return an empty buffer with the test registries attached}, as every loadable writes to a registry buffer */
+  public static RegistryFriendlyByteBuf buffer() {
+    return new RegistryFriendlyByteBuf(Unpooled.buffer(), registryAccess(), ConnectionType.NEOFORGE);
+  }
+
   /** Asserts the value survives the network methods */
   public static <T> void assertNetworkRoundTrip(Loadable<T> loadable, T value) {
-    FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
+    RegistryFriendlyByteBuf buffer = buffer();
     loadable.encode(buffer, value);
     assertThat(loadable.decode(buffer)).as("network round trip").isEqualTo(value);
     assertThat(buffer.readableBytes()).as("network round trip must consume the whole buffer").isZero();
@@ -68,7 +74,7 @@ public abstract class LoadableTest extends BaseMcTest {
 
   /** Unwraps a result, failing the test with the error message instead of an empty optional */
   public static <T> T success(DataResult<T> result) {
-    assertThat(result.error().map(DataResult.PartialResult::message)).as("expected a successful result").isEmpty();
+    assertThat(result.error().map(DataResult.Error::message)).as("expected a successful result").isEmpty();
     return result.result().orElseThrow();
   }
 

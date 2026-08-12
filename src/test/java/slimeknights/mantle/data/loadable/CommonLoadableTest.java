@@ -95,18 +95,18 @@ class CommonLoadableTest extends LoadableTest {
   @Test
   void itemStackWithNbt_roundTrips() {
     ItemStack stack = new ItemStack(Items.DIAMOND_SWORD);
-    stack.setTag(simpleTag());
+    setCustomData(stack, simpleTag());
     assertJsonRoundTripOfStack(ItemStackLoadable.OPTIONAL_STACK_NBT, stack);
   }
 
   @Test
   void itemStackWithNbt_keepsNumericTypesThroughNbtOps() {
     ItemStack stack = new ItemStack(Items.DIAMOND_SWORD);
-    stack.setTag(mixedTag());
+    setCustomData(stack, mixedTag());
     ItemStack result = ItemStackLoadable.OPTIONAL_STACK_NBT.convert(
       NbtOps.INSTANCE, ItemStackLoadable.OPTIONAL_STACK_NBT.serialize(NbtOps.INSTANCE, stack), KEY);
-    // compare against the stack rather than the tag we built, as setting a tag on a damageable item adds a damage key
-    assertThat(result.getTag()).isEqualTo(stack.getTag());
+    // compare against the stack rather than the tag we built, so the assertion follows whatever the component stored
+    assertThat(getCustomData(result)).isEqualTo(getCustomData(stack));
   }
 
   @Test
@@ -119,10 +119,10 @@ class CommonLoadableTest extends LoadableTest {
   /** Item stacks have no useful equals, so compare the serialized forms instead */
   private static void assertJsonRoundTripOfStack(Loadable<ItemStack> loadable, ItemStack stack) {
     ItemStack fromJson = loadable.convert(loadable.serialize(stack), KEY);
-    assertThat(ItemStack.isSameItemSameTags(fromJson, stack)).as("gson round trip").isTrue();
+    assertThat(ItemStack.isSameItemSameComponents(fromJson, stack)).as("gson round trip").isTrue();
     assertThat(fromJson.getCount()).as("gson round trip count").isEqualTo(stack.getCount());
     ItemStack fromNbt = loadable.convert(NbtOps.INSTANCE, loadable.serialize(NbtOps.INSTANCE, stack), KEY);
-    assertThat(ItemStack.isSameItemSameTags(fromNbt, stack)).as("nbt round trip").isTrue();
+    assertThat(ItemStack.isSameItemSameComponents(fromNbt, stack)).as("nbt round trip").isTrue();
     assertThat(fromNbt.getCount()).as("nbt round trip count").isEqualTo(stack.getCount());
   }
 

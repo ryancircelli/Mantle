@@ -6,7 +6,7 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -25,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /** Tests the read side of the item data API */
 class DataViewTest extends BaseMcTest {
   private static ResourceLocation id(String path) {
-    return new ResourceLocation("mantle_test", "view_" + path);
+    return ResourceLocation.fromNamespaceAndPath("mantle_test", "view_" + path);
   }
 
   /** Loadable recording how often it was asked to read, used to show a view parses only what it is asked for */
@@ -59,12 +59,12 @@ class DataViewTest extends BaseMcTest {
     }
 
     @Override
-    public T decode(FriendlyByteBuf buffer, TypedMap context) {
+    public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return base.decode(buffer, context);
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, T value) {
+    public void encode(RegistryFriendlyByteBuf buffer, T value) {
       base.encode(buffer, value);
     }
   }
@@ -82,7 +82,7 @@ class DataViewTest extends BaseMcTest {
   /** Builds a stack whose tag holds a value for both simple keys */
   private static ItemStack filledStack() {
     ItemStack stack = new ItemStack(Items.STONE);
-    CompoundTag tag = stack.getOrCreateTag();
+    CompoundTag tag = getOrCreateCustomData(stack);
     tag.putString(NAME.getName(), "hello");
     tag.putInt(COUNT.getName(), 7);
     return stack;
@@ -103,7 +103,7 @@ class DataViewTest extends BaseMcTest {
   @Test
   void tagWithoutTheKey_readsAsAbsent() {
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString("other_mod:something", "value");
+    getOrCreateCustomData(stack).putString("other_mod:something", "value");
     DataView view = DataView.of(stack);
     assertThat(view.get(NAME)).isNull();
     assertThat(view.has(NAME)).isFalse();
@@ -136,7 +136,7 @@ class DataViewTest extends BaseMcTest {
 
   @Test
   void tagView_readsTheSameValues() {
-    DataView view = DataView.of(filledStack().getTag());
+    DataView view = DataView.of(getCustomData(filledStack()));
     assertThat(view.get(NAME)).isEqualTo("hello");
     assertThat(view.get(COUNT)).isEqualTo(7);
   }
@@ -147,7 +147,7 @@ class DataViewTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     DataView view = DataView.of(stack);
     assertThat(view.get(NAME)).isNull();
-    stack.getOrCreateTag().putString(NAME.getName(), "later");
+    getOrCreateCustomData(stack).putString(NAME.getName(), "later");
     assertThat(view.get(NAME)).isEqualTo("later");
   }
 
@@ -158,7 +158,7 @@ class DataViewTest extends BaseMcTest {
   void creatingAViewReadsNothing() {
     ItemStack stack = filledStack();
     DataView.of(stack);
-    DataView.of(stack.getTag());
+    DataView.of(getCustomData(stack));
     assertThat(COUNTED.reads).isZero();
   }
 
@@ -178,7 +178,7 @@ class DataViewTest extends BaseMcTest {
   @Test
   void malformedValue_readsAsAbsent() {
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString(COUNT.getName(), "not a number");
+    getOrCreateCustomData(stack).putString(COUNT.getName(), "not a number");
     DataView view = DataView.of(stack);
     assertThat(view.get(COUNT)).isNull();
     assertThat(view.getOrDefault(COUNT, 3)).isEqualTo(3);
@@ -188,7 +188,7 @@ class DataViewTest extends BaseMcTest {
   void malformedValue_isStillPresent() {
     // has reports the entry, not whether it can be read, which is what tells a broken value from a missing one
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString(COUNT.getName(), "not a number");
+    getOrCreateCustomData(stack).putString(COUNT.getName(), "not a number");
     DataView view = DataView.of(stack);
     assertThat(view.has(COUNT)).isTrue();
     assertThat(view.get(COUNT)).isNull();
@@ -197,7 +197,7 @@ class DataViewTest extends BaseMcTest {
   @Test
   void malformedValue_reportedByGetStrict() {
     ItemStack stack = new ItemStack(Items.STONE);
-    stack.getOrCreateTag().putString(COUNT.getName(), "not a number");
+    getOrCreateCustomData(stack).putString(COUNT.getName(), "not a number");
     assertThatThrownBy(() -> DataView.of(stack).getStrict(COUNT))
       .isInstanceOf(JsonSyntaxException.class)
       .hasMessageContaining(COUNT.getName());
@@ -207,7 +207,7 @@ class DataViewTest extends BaseMcTest {
   void hostileTag_neverThrows() {
     // the shapes a stack can arrive from a client, a command or an old save with, none of which may crash a tooltip
     ItemStack stack = new ItemStack(Items.STONE);
-    CompoundTag tag = stack.getOrCreateTag();
+    CompoundTag tag = getOrCreateCustomData(stack);
     tag.put(NAME.getName(), new ListTag());
     tag.put(COUNT.getName(), new CompoundTag());
     tag.putInt(NBT.getName(), 5);
@@ -227,7 +227,7 @@ class DataViewTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     CompoundTag stored = new CompoundTag();
     stored.putInt("value", 1);
-    stack.getOrCreateTag().put(NBT.getName(), stored);
+    getOrCreateCustomData(stack).put(NBT.getName(), stored);
 
     DataView view = DataView.of(stack);
     CompoundTag first = view.get(NBT);
@@ -242,7 +242,7 @@ class DataViewTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     CompoundTag stored = new CompoundTag();
     stored.putInt("value", 1);
-    stack.getOrCreateTag().put(NBT.getName(), stored);
+    getOrCreateCustomData(stack).put(NBT.getName(), stored);
 
     CompoundTag read = DataView.of(stack).get(NBT);
     assertThat(read).isNotSameAs(stored);
@@ -253,7 +253,7 @@ class DataViewTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.STONE);
     CompoundTag stored = new CompoundTag();
     stored.putInt("value", 1);
-    stack.getOrCreateTag().put(NBT.getName(), stored);
+    getOrCreateCustomData(stack).put(NBT.getName(), stored);
 
     DataView view = DataView.of(stack);
     CompoundTag read = view.get(NBT);
