@@ -1,6 +1,6 @@
 package slimeknights.mantle.data.loadable.mapping;
 
-import com.google.gson.JsonElement;
+import com.mojang.serialization.DynamicOps;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.primitive.EnumLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -34,8 +34,8 @@ public class EnumSetLoadable<T extends Enum<T>> extends SetLoadable<T> {
   }
 
   @Override
-  public Set<T> convertCompact(JsonElement element, String key, TypedMap context) {
+  public <O> Set<T> convertCompact(DynamicOps<O> ops, O value, String key, TypedMap context) {
     // base impl uses List.of rather than createBuilder, so we need an override
-    return build(EnumSet.of(base.convert(element, key, context)));
+    return build(EnumSet.of(base.convert(ops, value, key, context)));
   }
 }

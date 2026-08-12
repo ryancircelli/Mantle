@@ -1,7 +1,6 @@
 package slimeknights.mantle.data.loadable.array;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
+import com.mojang.serialization.DynamicOps;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.field.DefaultingField;
@@ -9,6 +8,7 @@ import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
 
 /** Loadable for a float array */
@@ -19,28 +19,28 @@ public record FloatArrayLoadable(Loadable<Float> base, int minSize, int maxSize)
   }
 
   @Override
-  public float[] convertCompact(JsonElement element, String key, TypedMap context) {
-    return new float[] { base.convert(element, key, context) };
+  public <O> float[] convertCompact(DynamicOps<O> ops, O value, String key, TypedMap context) {
+    return new float[] { base.convert(ops, value, key, context) };
   }
 
   @Override
-  public float[] convertArray(JsonArray array, String key, TypedMap context) {
-    float[] result = new float[array.size()];
+  public <O> float[] convertArray(DynamicOps<O> ops, List<O> list, String key, TypedMap context) {
+    float[] result = new float[list.size()];
     for (int i = 0; i < result.length; i++) {
-      result[i] = base.convert(array.get(i), key + '[' + i + ']', context);
+      result[i] = base.convert(ops, list.get(i), key + '[' + i + ']', context);
     }
     return result;
   }
 
   @Override
-  public JsonElement serializeFirst(float[] object) {
-    return base.serialize(object[0]);
+  public <O> O serializeFirst(DynamicOps<O> ops, float[] object) {
+    return base.serialize(ops, object[0]);
   }
 
   @Override
-  public void serializeAll(JsonArray array, float[] object) {
+  public <O> void serializeAll(DynamicOps<O> ops, List<O> list, float[] object) {
     for (float element : object) {
-      array.add(base.serialize(element));
+      list.add(base.serialize(ops, element));
     }
   }
 
