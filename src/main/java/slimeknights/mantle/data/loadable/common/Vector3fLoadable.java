@@ -7,7 +7,7 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import org.joml.Vector3f;
 import slimeknights.mantle.data.loadable.OpsHelper;
@@ -91,12 +91,12 @@ public enum Vector3fLoadable implements RecordLoadable<Vector3f> {
   }
 
   @Override
-  public Vector3f decode(FriendlyByteBuf buffer, TypedMap context) {
+  public Vector3f decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return buffer.readVector3f();
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, Vector3f value) {
+  public void encode(RegistryFriendlyByteBuf buffer, Vector3f value) {
     buffer.writeVector3f(value);
   }
 }

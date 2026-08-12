@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -43,10 +43,10 @@ public interface ContextField<T> extends RecordField<T,Object> {
   }
 
   @Override
-  default T decode(FriendlyByteBuf buffer, TypedMap context) {
+  default T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return get(context, ErrorFactory.DECODER_EXCEPTION);
   }
 
   @Override
-  default void encode(FriendlyByteBuf buffer, Object parent) {}
+  default void encode(RegistryFriendlyByteBuf buffer, Object parent) {}
 }

@@ -1,10 +1,10 @@
 package slimeknights.mantle.data.loadable.common;
 
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidType;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidType;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.Loadables;
@@ -17,7 +17,11 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-/** Loadable for a fluid stack */
+/**
+ * Loadable for a fluid stack.
+ * @apiNote  As with {@link ItemStackLoadable}, the variants named {@code NBT} carry a {@link DataComponentPatch} under
+ *           a {@code components} field in 1.21; NeoForge moved fluid stacks onto data components alongside item stacks.
+ */
 @SuppressWarnings("unused")  // API
 public class FluidStackLoadable {
   private FluidStackLoadable() {}
@@ -26,7 +30,7 @@ public class FluidStackLoadable {
   /** Getter for an item from a stack */
   private static final Function<FluidStack,Fluid> FLUID_GETTER = FluidStack::getFluid;
   /** Checks if a stack can be serialized to a primitive, ignoring count */
-  private static final Predicate<FluidStack> COMPACT_NBT = stack -> !stack.hasTag();
+  private static final Predicate<FluidStack> COMPACT_NBT = FluidStack::isComponentsPatchEmpty;
   /** Maps a fluid stack that may be empty to a strictly not empty one */
   private static final BiFunction<FluidStack,ErrorFactory,FluidStack> NOT_EMPTY = (stack, error) -> {
     if (stack.isEmpty()) {
@@ -40,8 +44,8 @@ public class FluidStackLoadable {
   private static final LoadableField<Fluid,FluidStack> FLUID = Loadables.FLUID.defaultField("fluid", Fluids.EMPTY, false, FLUID_GETTER);
   /** Field for fluid stack count that allows empty */
   private static final LoadableField<Integer,FluidStack> AMOUNT = IntLoadable.FROM_ZERO.requiredField("amount", FluidStack::getAmount);
-  /** Field for fluid stack count */
-  private static final LoadableField<CompoundTag,FluidStack> NBT = NBTLoadable.ALLOW_STRING.nullableField("nbt", FluidStack::getTag);
+  /** Field for the components which differ from the fluid's defaults */
+  private static final LoadableField<DataComponentPatch,FluidStack> NBT = DataComponentsLoadable.INSTANCE.defaultField("components", DataComponentPatch.EMPTY, false, FluidStack::getComponentsPatch);
 
 
   /* Optional */
@@ -69,11 +73,15 @@ public class FluidStackLoadable {
   /* Helpers */
 
   /** Makes an item stack from the given parameters */
-  private static FluidStack makeStack(Fluid fluid, int amount, @Nullable CompoundTag nbt) {
+  private static FluidStack makeStack(Fluid fluid, int amount, @Nullable DataComponentPatch components) {
     if (fluid == Fluids.EMPTY || amount <= 0) {
       return FluidStack.EMPTY;
     }
-    return new FluidStack(fluid, amount, nbt);
+    FluidStack stack = new FluidStack(fluid, amount);
+    if (components != null && !components.isEmpty()) {
+      stack.applyComponents(components);
+    }
+    return stack;
   }
 
   /** Creates a loadable for a stack with a single item */

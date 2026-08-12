@@ -8,7 +8,7 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -144,12 +144,12 @@ public enum BlockStateLoadable implements RecordLoadable<BlockState> {
   }
 
   @Override
-  public BlockState decode(FriendlyByteBuf buffer, TypedMap context) {
+  public BlockState decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return Block.stateById(buffer.readVarInt());
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, BlockState object) {
+  public void encode(RegistryFriendlyByteBuf buffer, BlockState object) {
     buffer.writeVarInt(Block.getId(object));
   }
 }

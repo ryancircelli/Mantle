@@ -5,7 +5,7 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import com.mojang.datafixers.util.Function14;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.field.RecordField;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -103,7 +103,7 @@ record RecordWithLoader13<A,B,C,D,E,F,G,H,I,J,K,L,M,R>(
   }
 
   @Override
-  public R decode(FriendlyByteBuf buffer, TypedMap context) {
+  public R decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return constructor.apply(
       fieldA.decode(buffer, context),
       fieldB.decode(buffer, context),
@@ -123,7 +123,7 @@ record RecordWithLoader13<A,B,C,D,E,F,G,H,I,J,K,L,M,R>(
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, R object) {
+  public void encode(RegistryFriendlyByteBuf buffer, R object) {
     fieldA.encode(buffer, object);
     fieldB.encode(buffer, object);
     fieldC.encode(buffer, object);

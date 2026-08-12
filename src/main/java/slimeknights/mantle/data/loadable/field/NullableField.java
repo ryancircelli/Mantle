@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -44,7 +44,7 @@ public record NullableField<T,P>(Loadable<T> loadable, String key, Function<P,T>
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer, TypedMap context) {
+  public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     if (buffer.readBoolean()) {
       return loadable.decode(buffer, context);
     }
@@ -52,7 +52,7 @@ public record NullableField<T,P>(Loadable<T> loadable, String key, Function<P,T>
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, P parent) {
+  public void encode(RegistryFriendlyByteBuf buffer, P parent) {
     T object = getter.apply(parent);
     if (object != null) {
       buffer.writeBoolean(true);
