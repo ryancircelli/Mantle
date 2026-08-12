@@ -230,7 +230,6 @@ src/main/java/slimeknights/mantle/item/BurnableBlockItem.java
 src/main/java/slimeknights/mantle/item/BurnableHangingSignItem.java
 src/main/java/slimeknights/mantle/item/BurnableSignItem.java
 src/main/java/slimeknights/mantle/item/BurnableTallBlockItem.java
-src/main/java/slimeknights/mantle/item/ConstantFluidContainerWrapper.java
 src/main/java/slimeknights/mantle/item/ContainerFoodItem.java
 src/main/java/slimeknights/mantle/item/EdibleItem.java
 src/main/java/slimeknights/mantle/item/LecternBookItem.java
@@ -294,7 +293,6 @@ src/main/java/slimeknights/mantle/recipe/crafting/ShapedRetexturedRecipeBuilder.
 src/main/java/slimeknights/mantle/recipe/crafting/package-info.java
 src/main/java/slimeknights/mantle/recipe/data/AbstractRecipeBuilder.java
 src/main/java/slimeknights/mantle/recipe/data/ConsumerWrapperBuilder.java
-src/main/java/slimeknights/mantle/recipe/data/FluidNameIngredient.java
 src/main/java/slimeknights/mantle/recipe/data/ICommonRecipeHelper.java
 src/main/java/slimeknights/mantle/recipe/data/IRecipeHelper.java
 src/main/java/slimeknights/mantle/recipe/data/ItemNameIngredient.java
