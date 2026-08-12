@@ -1,11 +1,11 @@
 package slimeknights.mantle.recipe.helper;
 
-import com.google.gson.JsonObject;
+import com.mojang.serialization.MapCodec;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
@@ -16,11 +16,16 @@ import slimeknights.mantle.data.loadable.primitive.StringLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMapBuilder;
 
-import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 /**
- * Recipe serializer instance using loadables. Use {@link ContextKey#ID} to get the recipe ID.
+ * Recipe serializer instance using loadables.
+ * <p>
+ * The serializer supplies a fixed parsing context to both of its codecs, holding itself under {@link #SERIALIZER} and,
+ * for a {@link TypeAware} serializer, its type under {@link #TYPE}. There is no {@code ContextKey.ID} entry: 1.21 moved
+ * the recipe ID out of the recipe and onto {@link net.minecraft.world.item.crafting.RecipeHolder}, so a recipe never
+ * sees its own ID at parse time. A recipe which needs to name itself in a message should use its serializer's registry
+ * name, which is what this class does for {@link ContextKey#DEBUG}.
  * @param <T>  Recipe type
  */
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
@@ -36,6 +41,10 @@ public class LoadableRecipeSerializer<T extends Recipe<?>> implements LoggingRec
 
 
   protected final RecordLoadable<T> loadable;
+  /** Codecs are built on first use rather than in the constructor, as {@link #buildContext()} is overridden by
+   * subclasses whose own fields are not yet assigned while the constructor runs. */
+  private MapCodec<T> codec;
+  private StreamCodec<RegistryFriendlyByteBuf,T> streamCodec;
 
   /** Creates a standard serializer from a loadable */
   public static <T extends Recipe<?>> RecipeSerializer<T> of(RecordLoadable<T> loadable) {
@@ -52,37 +61,39 @@ public class LoadableRecipeSerializer<T extends Recipe<?>> implements LoggingRec
     return new Deprecated<>(loadable, replacement);
   }
 
-  /** Builds a context for the given ID */
-  protected TypedMapBuilder buildContext(ResourceLocation id) {
-    return TypedMapBuilder.builder().put(ContextKey.ID, id).put(ContextKey.DEBUG, "Recipe " + id).put(SERIALIZER, this);
+  /** Builds the context handed to both codecs. Called once, lazily, on first parse. */
+  protected TypedMapBuilder buildContext() {
+    return TypedMapBuilder.builder().put(ContextKey.DEBUG, "Recipe serializer " + BuiltInRegistries.RECIPE_SERIALIZER.getKey(this)).put(SERIALIZER, this);
   }
 
   @Override
-  public T fromJson(ResourceLocation id, JsonObject json) {
-    return loadable.deserialize(json, buildContext(id).build());
-  }
-
-  @Override
-  public T fromNetworkSafe(ResourceLocation id, FriendlyByteBuf buffer) {
-    return loadable.decode(buffer, buildContext(id).build());
-  }
-
-  @Nullable
-  @Override
-  public T fromNetwork(ResourceLocation id, FriendlyByteBuf buffer) {
-    try {
-      return fromNetworkSafe(id, buffer);
-    } catch (RuntimeException e) {
-      Mantle.logger.error("{}: Error reading recipe {} from packet using loadable {}", this.getClass().getSimpleName(), id, loadable, e);
-      throw e;
+  public MapCodec<T> codec() {
+    if (codec == null) {
+      codec = loadable.mapCodec(buildContext().build());
     }
+    return codec;
   }
 
   @Override
-  public void toNetworkSafe(FriendlyByteBuf buffer, T recipe) {
-    loadable.encode(buffer, recipe);
+  public StreamCodec<RegistryFriendlyByteBuf,T> streamCodecSafe() {
+    if (streamCodec == null) {
+      streamCodec = loadable.streamCodec(buildContext().build());
+    }
+    return streamCodec;
   }
 
+  @Override
+  public String toString() {
+    return getClass().getSimpleName() + '[' + loadable + ']';
+  }
+
+  /**
+   * Serializer for a recipe class shared by several recipe types.
+   * <p>
+   * 1.21's serializer sees nothing but the recipe JSON at parse, so the type cannot come out of the file. It comes from
+   * the serializer instance instead: register one instance per type over the same loadable, exactly as vanilla registers
+   * one {@code SimpleCookingSerializer} per cooking type, and the recipe reads it back out of the context.
+   */
   public static class TypeAware<T extends Recipe<?>> extends LoadableRecipeSerializer<T> implements TypeAwareRecipeSerializer<T> {
     private final Supplier<? extends RecipeType<?>> type;
     protected TypeAware(RecordLoadable<T> loadable, Supplier<? extends RecipeType<?>> type) {
@@ -91,24 +102,13 @@ public class LoadableRecipeSerializer<T extends Recipe<?>> implements LoggingRec
     }
 
     @Override
-    protected TypedMapBuilder buildContext(ResourceLocation id) {
-      return super.buildContext(id).put(TYPE, getType()).put(TYPED_SERIALIZER, this);
+    protected TypedMapBuilder buildContext() {
+      return super.buildContext().put(TYPE, getType()).put(TYPED_SERIALIZER, this);
     }
 
     @Override
     public RecipeType<?> getType() {
       return type.get();
-    }
-
-    @Nullable
-    @Override
-    public T fromNetwork(ResourceLocation id, FriendlyByteBuf buffer) {
-      try {
-        return fromNetworkSafe(id, buffer);
-      } catch (RuntimeException e) {
-        Mantle.logger.error("{}: Error reading recipe {} of type {} from packet using loadable {}", this.getClass().getSimpleName(), id, getType(), loadable, e);
-        throw e;
-      }
     }
   }
 
@@ -120,11 +120,12 @@ public class LoadableRecipeSerializer<T extends Recipe<?>> implements LoggingRec
       this.replacement = replacement;
     }
 
+    /** @implNote  Warns from the codec fetch rather than from the parse itself, as 1.21 gives a serializer no hook
+     *             between the two. The recipe cannot be named as it no longer knows its own ID. */
     @Override
-    public T fromJson(ResourceLocation id, JsonObject json) {
-      T recipe = super.fromJson(id, json);
-      Mantle.logger.warn("Using deprecated recipe serializer {} for recipe {}, {}", BuiltInRegistries.RECIPE_SERIALIZER.getKey(this), recipe.getId(), replacement);
-      return recipe;
+    public MapCodec<T> codec() {
+      Mantle.logger.warn("Using deprecated recipe serializer {}, {}", BuiltInRegistries.RECIPE_SERIALIZER.getKey(this), replacement);
+      return super.codec();
     }
   }
 }

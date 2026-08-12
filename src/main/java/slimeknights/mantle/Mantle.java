@@ -19,6 +19,9 @@ import org.apache.logging.log4j.Logger;
 import slimeknights.mantle.config.Config;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
 import slimeknights.mantle.network.MantleNetwork;
+import slimeknights.mantle.recipe.MantleIngredients;
+import slimeknights.mantle.recipe.MantleRecipes;
+import slimeknights.mantle.recipe.condition.MantleConditions;
 import slimeknights.mantle.recipe.helper.TagPreference;
 
 /**
@@ -52,14 +55,15 @@ public class Mantle {
     modBus.addListener(EventPriority.NORMAL, false, FMLCommonSetupEvent.class, this::commonSetup);
     modBus.addListener(EventPriority.NORMAL, false, RegisterPayloadHandlersEvent.class, MantleNetwork.INSTANCE::registerPayloads);
     modBus.addListener(EventPriority.NORMAL, false, RegisterEvent.class, this::register);
+    MantleConditions.init(modBus);
+    MantleIngredients.init(modBus);
+    MantleRecipes.init(modBus);
 
     // TODO(M-capability): restore once util/OffhandCooldownTracker ports (needs slimeknights.mantle.network)
     // bus.addListener(EventPriority.NORMAL, false, RegisterCapabilitiesEvent.class, this::registerCapabilities);
 
     // TODO(M-datagen): restore once slimeknights.mantle.datagen ports
     // bus.addListener(EventPriority.NORMAL, false, GatherDataEvent.class, this::gatherData);
-
-    // TODO(M-recipe): restore once slimeknights.mantle.recipe ports - MantleRecipes.init(modBus);
 
     // TODO(M-item): restore once slimeknights.mantle.item.LecternBookItem ports
     // NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, PlayerInteractEvent.RightClickBlock.class, LecternBookItem::interactWithBlock);
@@ -80,12 +84,13 @@ public class Mantle {
   private void register(RegisterEvent event) {
     ResourceKey<?> key = event.getRegistryKey();
     if (key == Registries.RECIPE_SERIALIZER) {
-      // TODO(M-recipe/loot/predicate/command): register() also wired Mantle's recipe conditions, ingredient
-      // serializers, predicate loaders, block entity signs, the command argument type and the loot modifier
+      // TODO(M-loot/predicate/command): register() also wired the predicate loaders, block entity signs,
+      // the command argument type and the loot modifier
 
       // fluid container transfer
       FluidContainerTransferManager.registerDefaults();
     }
+    MantleConditions.registerLootConditions(event);
   }
 
   /**

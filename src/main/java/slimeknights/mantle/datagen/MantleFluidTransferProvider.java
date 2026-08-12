@@ -3,21 +3,20 @@ package slimeknights.mantle.datagen;
 import net.minecraft.data.PackOutput;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.alchemy.Potions;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.common.crafting.conditions.ICondition;
-import net.minecraftforge.common.crafting.conditions.NotCondition;
+import net.neoforged.neoforge.common.conditions.ICondition;
+import net.neoforged.neoforge.common.conditions.NotCondition;
 import org.jetbrains.annotations.ApiStatus.Internal;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.fluid.transfer.AbstractFluidContainerTransferProvider;
 import slimeknights.mantle.fluid.transfer.EmptyPotionTransfer;
 import slimeknights.mantle.fluid.transfer.FillFluidContainerTransfer;
-import slimeknights.mantle.fluid.transfer.FillFluidWithNBTTransfer;
+import slimeknights.mantle.fluid.transfer.FillFluidWithComponentsTransfer;
 import slimeknights.mantle.recipe.condition.TagFilledCondition;
 import slimeknights.mantle.recipe.helper.ItemOutput;
 import slimeknights.mantle.recipe.ingredient.FluidIngredient;
@@ -52,8 +51,8 @@ public class MantleFluidTransferProvider extends AbstractFluidContainerTransferP
   }
 
   /** Adds generic fill and empty for a container */
-  private void optionalFillEmpty(String prefix, ItemLike item, ItemLike container, TagKey<Fluid> tag, int amount, boolean nbt) {
-    addFillEmpty(prefix, item, container, tag, amount, nbt, new TagFilledCondition<>(tag));
+  private void optionalFillEmpty(String prefix, ItemLike item, ItemLike container, TagKey<Fluid> tag, int amount, boolean components) {
+    addFillEmpty(prefix, item, container, tag, amount, components, new TagFilledCondition<>(tag));
   }
 
   /** Adds generic fill and empty for a container */
@@ -82,7 +81,7 @@ public class MantleFluidTransferProvider extends AbstractFluidContainerTransferP
     }
 
     // filling potions is as simple as a NBT copy, though this requires a potion fluid and possibly a container
-    addTransfer(prefix + "fill_potion", new FillFluidWithNBTTransfer(
+    addTransfer(prefix + "fill_potion", new FillFluidWithComponentsTransfer(
       container,
       ItemOutput.fromItem(filled),
       FluidIngredient.of(MantleTags.Fluids.POTION, MantleValues.BOTTLE)),
@@ -91,7 +90,7 @@ public class MantleFluidTransferProvider extends AbstractFluidContainerTransferP
     // we can always fill water bottles, not always fill splash and lingering
     addTransfer(prefix + "fill_water", new FillFluidContainerTransfer(
       container,
-      ItemOutput.fromStack(PotionUtils.setPotion(new ItemStack(filled), Potions.WATER)),
+      ItemOutput.fromStack(PotionContents.createItemStack(filled.asItem(), Potions.WATER)),
       FluidIngredient.of(MantleTags.Fluids.WATER, MantleValues.BOTTLE * 2)),
       waterConditions);
   }

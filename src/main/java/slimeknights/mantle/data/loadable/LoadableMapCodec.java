@@ -7,7 +7,9 @@ import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -26,15 +28,23 @@ public final class LoadableMapCodec<T> extends MapCodec<T> {
 
   private final RecordLoadable<T> loadable;
   /** Keys this codec promises to read and write, or null if unknown. See {@link RecordLoadable#mapCodec(String...)}. */
+  @Nullable
   private final List<String> keys;
+  /** Context handed to the loadable on decode. See {@link RecordLoadable#mapCodec(TypedMap)}. */
+  private final TypedMap context;
 
   public LoadableMapCodec(RecordLoadable<T> loadable) {
-    this(loadable, null);
+    this(loadable, null, TypedMap.EMPTY);
   }
 
-  public LoadableMapCodec(RecordLoadable<T> loadable, List<String> keys) {
+  public LoadableMapCodec(RecordLoadable<T> loadable, @Nullable List<String> keys) {
+    this(loadable, keys, TypedMap.EMPTY);
+  }
+
+  public LoadableMapCodec(RecordLoadable<T> loadable, @Nullable List<String> keys, TypedMap context) {
     this.loadable = loadable;
     this.keys = keys;
+    this.context = context;
   }
 
   /** {@return the loadable backing this codec} */
@@ -71,7 +81,7 @@ public final class LoadableMapCodec<T> extends MapCodec<T> {
       return DataResult.error(() -> NO_KEYS);
     }
     return ErrorFactory.catching(
-      () -> loadable.deserialize(ops, input),
+      () -> loadable.deserialize(ops, input, context),
       e -> Mantle.logger.warn("Unable to decode {}", loadable, e));
   }
 

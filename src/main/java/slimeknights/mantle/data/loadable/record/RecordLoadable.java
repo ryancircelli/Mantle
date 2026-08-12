@@ -177,6 +177,19 @@ public interface RecordLoadable<T> extends Loadable<T> {
     return new LoadableMapCodec<>(this, List.of(keys));
   }
 
+  /**
+   * Same as {@link #mapCodec()} but decodes with the given parsing context.
+   * <p>
+   * A {@link MapCodec} has nowhere to put a {@link TypedMap}, so a loadable reading a context field can only be used as
+   * one if the context is fixed when the codec is built. That is exactly the case for a recipe serializer, whose
+   * context is itself and its recipe type.
+   * @param context  Context handed to {@link #deserialize(DynamicOps, MapLike, TypedMap)} on every decode
+   * @return  Map codec backed by this loadable
+   */
+  default MapCodec<T> mapCodec(TypedMap context) {
+    return new LoadableMapCodec<>(this, null, context);
+  }
+
 
   /* Fields */
 
