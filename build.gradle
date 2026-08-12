@@ -19,8 +19,8 @@ repositories {
     mavenCentral()
     maven {
         // Our maven
-        name "Prog's Maven"
-        url 'https://dvs1.progwml6.com/files/maven'
+        name = "Prog's Maven"
+        url = 'https://dvs1.progwml6.com/files/maven'
     }
     maven {
         // Parchment; also mirrored on the NeoForged maven that ModDevGradle adds itself,
@@ -284,8 +284,10 @@ tasks.named('processResources', ProcessResources).configure {
     ]
     inputs.properties replaceProperties
 
+    // No `project` in the binding: neither template references it, and reaching for
+    // Task.project at execution time is deprecated and configuration-cache hostile.
     filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
-        expand replaceProperties + [project: project]
+        expand replaceProperties
     }
 }
 
