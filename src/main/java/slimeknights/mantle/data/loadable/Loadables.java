@@ -96,7 +96,7 @@ public class Loadables {
 
   /** Loadable for a rotation value, from 0 to 270 */
   public static final Loadable<Integer> ROTATION = new IntLoadable(0, 270, IntNetwork.SHORT).validate((value, error) -> {
-    // same check as ModelHelper#checkRotation, restated here as that class is client only and still unported
+    // same check as ModelHelper#checkRotation, restated here as that class is client only
     if (value % 90 != 0) {
       throw error.create("Rotation must be 0/90/180/270");
     }

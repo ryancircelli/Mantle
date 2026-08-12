@@ -141,7 +141,8 @@ public class MultiModuleScreen<CONTAINER extends MultiModuleContainerMenu<?>> ex
 
   @Override
   public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-    this.renderBackground(graphics, mouseX, mouseY, partialTicks);
+    // no renderBackground call here: 1.21's AbstractContainerScreen#render draws it, and it does so with the corner
+    // position swapped in below, where the module backgrounds belong
     int oldX = this.leftPos;
     int oldY = this.topPos;
     int oldW = this.imageWidth;

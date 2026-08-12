@@ -30,7 +30,7 @@ import java.nio.file.Path;
  */
 public class RemoveDataCommand {
   /* Name is invalid */
-  private static final Dynamic2CommandExceptionType INVALID_REGISTRY = new Dynamic2CommandExceptionType((name, registry) -> Mantle.makeComponent("command", "key.wrong_registry", name, registry));
+  private static final Dynamic2CommandExceptionType INVALID_REGISTRY = new Dynamic2CommandExceptionType((name, registry) -> Mantle.makeComponent("command", "key.wrong_registry", String.valueOf(name), String.valueOf(registry)));
   // success
   /** Translation key for successfully removing structure sets */
   private static final String STRUCTURE_SET_SUCCESS = Mantle.makeDescriptionId("command", "remove_data.structure.success");
@@ -82,7 +82,7 @@ public class RemoveDataCommand {
 
     // send success
     float time = (System.nanoTime() - startTime) / 1000000f;
-    context.getSource().sendSuccess(() -> Component.translatable(STRUCTURE_SET_SUCCESS, id.location(), time, GeneratePackHelper.getOutputComponent(pack)), true);
+    context.getSource().sendSuccess(() -> Component.translatable(STRUCTURE_SET_SUCCESS, id.location().toString(), time, GeneratePackHelper.getOutputComponent(pack)), true);
     return 1;
   }
 
@@ -112,7 +112,7 @@ public class RemoveDataCommand {
 
     // send success
     float time = (System.nanoTime() - startTime) / 1000000f;
-    context.getSource().sendSuccess(() -> Component.translatable(BIOME_MODIFIER_SUCCESS, id.location(), time, GeneratePackHelper.getOutputComponent(pack)), true);
+    context.getSource().sendSuccess(() -> Component.translatable(BIOME_MODIFIER_SUCCESS, id.location().toString(), time, GeneratePackHelper.getOutputComponent(pack)), true);
     return 1;
   }
 }

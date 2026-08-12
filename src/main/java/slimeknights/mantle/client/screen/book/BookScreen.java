@@ -158,7 +158,17 @@ public class BookScreen extends Screen {
   }
 
   @Override
-  public void render(GuiGraphics graphics, int mouseX ,int mouseY, float partialTicks) {
+  public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
+    // 1.21 draws the screen background from Screen#render, and that background now runs the blur postprocess over
+    // everything already in the frame. Drawing the book before super.render as we did in 1.20 fed every book pixel
+    // through the blur, so the book draws from here instead, after the backdrop. Like vanilla's book screens we skip
+    // the blur entirely and just dim the world behind.
+    this.renderTransparentBackground(graphics);
+    this.renderBook(graphics, partialTicks);
+  }
+
+  /** Draws the book itself, without the screen backdrop or the page arrows. Used by the book exporter, which renders to its own target. */
+  public void renderBook(GuiGraphics graphics, float partialTicks) {
     if(this.minecraft == null) {
       return;
     }
@@ -251,8 +261,6 @@ public class BookScreen extends Screen {
         }
       }
     }
-
-    super.render(graphics, mouseX, mouseY, partialTicks);
   }
 
   private boolean shouldRenderPage(int pageNum, boolean rightSide) {

@@ -9,20 +9,26 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import net.neoforged.neoforge.data.event.GatherDataEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import slimeknights.mantle.client.ClientEvents;
 import slimeknights.mantle.command.MantleCommand;
 import slimeknights.mantle.config.Config;
+import slimeknights.mantle.data.predicate.MantlePredicates;
 import slimeknights.mantle.datagen.MantleBlockTagProvider;
 import slimeknights.mantle.datagen.MantleFluidTagProvider;
 import slimeknights.mantle.datagen.MantleFluidTooltipProvider;
@@ -30,6 +36,7 @@ import slimeknights.mantle.datagen.MantleFluidTransferProvider;
 import slimeknights.mantle.datagen.MantleMenuTagProvider;
 import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
+import slimeknights.mantle.item.LecternBookItem;
 import slimeknights.mantle.loot.LootTableInjector;
 import slimeknights.mantle.loot.MantleLoot;
 import slimeknights.mantle.network.MantleNetwork;
@@ -86,13 +93,11 @@ public class Mantle {
     // is nothing to call it with yet; downstream mods call it once per block entity type from their own listener.
     // OffhandCooldownTracker, 1.20's other capability, is a data attachment now and registers itself above.
 
-    // TODO(M-item): restore once slimeknights.mantle.item.LecternBookItem ports
-    // NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, PlayerInteractEvent.RightClickBlock.class, LecternBookItem::interactWithBlock);
+    NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, PlayerInteractEvent.RightClickBlock.class, LecternBookItem::interactWithBlock);
 
-    // TODO(M-client): restore once slimeknights.mantle.client ports
-    // if (FMLEnvironment.dist == Dist.CLIENT) {
-    //   ClientEvents.onConstruct();
-    // }
+    if (FMLEnvironment.dist == Dist.CLIENT) {
+      ClientEvents.onConstruct();
+    }
   }
 
   private void commonSetup(FMLCommonSetupEvent event) {
@@ -120,10 +125,13 @@ public class Mantle {
   private void register(RegisterEvent event) {
     ResourceKey<?> key = event.getRegistryKey();
     if (key == Registries.RECIPE_SERIALIZER) {
-      // TODO(M-predicate/command): register() also wired the predicate loaders and the command argument type
+      // neither of these is a game registry; RegisterEvent is just the once-per-launch hook they are hung off,
+      // as it was in 1.20. The recipe serializer pass is arbitrary but early and fires on both dists.
 
       // fluid container transfer
       FluidContainerTransferManager.registerDefaults();
+      // predicate type names
+      MantlePredicates.registerDefaults();
     }
     MantleConditions.registerLootConditions(event);
     MantleLoot.register(event);
@@ -169,6 +177,10 @@ public class Mantle {
 
   /**
    * Makes a translation text component for the given name
+   * <p>
+   * As of 1.21 every argument must be a {@link Component}, {@link Number}, {@link Boolean} or {@link String};
+   * {@code TranslatableContents} throws {@link IllegalArgumentException} on anything else, where 1.20 quietly rendered
+   * it through {@code String.valueOf}. Call {@code toString()} on a resource location, key or path before passing it.
    * @param base  Base name, such as "block" or "gui"
    * @param name  Object name
    * @param args  Additional arguments to format strings

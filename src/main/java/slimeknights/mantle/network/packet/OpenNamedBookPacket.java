@@ -1,15 +1,13 @@
 package slimeknights.mantle.network.packet;
 
 import lombok.AllArgsConstructor;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.client.book.BookLoader;
 import slimeknights.mantle.client.book.data.BookData;
+import slimeknights.mantle.command.client.BookCommand;
 
 @AllArgsConstructor
 public class OpenNamedBookPacket implements IPacket.Threadsafe {
@@ -38,18 +36,12 @@ public class OpenNamedBookPacket implements IPacket.Threadsafe {
   }
 
   /**
-   * Holds the client-only reference so the class loads on a dedicated server. {@code command.client.BookCommand}
-   * (this packet's original error-reporting target) is out of scope for the book/screen port and stays behind the
-   * frontier, so this duplicates its four-line {@code bookNotFound} message rather than reaching across the boundary.
+   * Holds the client-only reference so this class loads on a dedicated server. The message itself belongs to
+   * {@link BookCommand}, which owns the {@code command.mantle.book_test.not_found} key and is the other sender of it.
    */
   static class ClientOnly {
-    private static final String BOOK_NOT_FOUND = "command.mantle.book_test.not_found";
-
     static void errorStatus(ResourceLocation book) {
-      Player player = Minecraft.getInstance().player;
-      if (player != null) {
-        player.displayClientMessage(Component.translatable(BOOK_NOT_FOUND, book).withStyle(ChatFormatting.RED), false);
-      }
+      BookCommand.bookNotFound(book);
     }
   }
 }
