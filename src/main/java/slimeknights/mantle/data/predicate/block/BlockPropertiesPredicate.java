@@ -10,13 +10,13 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
-import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
@@ -91,7 +91,7 @@ public record BlockPropertiesPredicate(Block block, List<Matcher> properties) im
     }
 
     @Override
-    public BlockPropertiesPredicate decode(FriendlyByteBuf buffer, TypedMap context) {
+    public BlockPropertiesPredicate decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       Block block = Loadables.BLOCK.decode(buffer, context);
       int size = buffer.readVarInt();
       List<Matcher> builder = new ArrayList<>(size);
@@ -102,7 +102,7 @@ public record BlockPropertiesPredicate(Block block, List<Matcher> properties) im
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, BlockPropertiesPredicate object) {
+    public void encode(RegistryFriendlyByteBuf buffer, BlockPropertiesPredicate object) {
       Loadables.BLOCK.encode(buffer, object.block);
       buffer.writeVarInt(object.properties.size());
       for (Matcher matcher : object.properties) {
@@ -148,9 +148,17 @@ public record BlockPropertiesPredicate(Block block, List<Matcher> properties) im
       }
       // if an array, set match
       if (element.isJsonArray()) {
-        return new SetMatcher<>(property, Set.copyOf(JsonHelper.parseList(
-          element.getAsJsonArray(), property.getName(),(e, key) -> parseValue(property, GsonHelper.convertToString(e, key), JSON_EXCEPTION)))
-        );
+        // this is JsonHelper#parseList, inlined as that class still depends on the unported network package
+        JsonArray array = element.getAsJsonArray();
+        if (array.isEmpty()) {
+          throw new JsonSyntaxException(property.getName() + " must have at least 1 element");
+        }
+        List<T> values = new ArrayList<>(array.size());
+        for (int i = 0; i < array.size(); i++) {
+          String key = property.getName() + "[" + i + "]";
+          values.add(parseValue(property, GsonHelper.convertToString(array.get(i), key), JSON_EXCEPTION));
+        }
+        return new SetMatcher<>(property, Set.copyOf(values));
       }
       // object means range match
       if (element.isJsonObject()) {

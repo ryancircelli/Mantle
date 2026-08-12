@@ -1,6 +1,7 @@
 package slimeknights.mantle.data.loadable;
 
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -29,6 +30,7 @@ import net.neoforged.neoforge.common.ItemAbility;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import slimeknights.mantle.data.loadable.common.CodecLoadable;
+import slimeknights.mantle.data.loadable.common.DynamicRegistryLoadable;
 import slimeknights.mantle.data.loadable.common.LazyRegistryLoadable;
 import slimeknights.mantle.data.loadable.common.RegistryLoadable;
 import slimeknights.mantle.data.loadable.primitive.EnumLoadable;
@@ -55,10 +57,12 @@ public class Loadables {
   public static final ResourceLocationLoadable<FluidType> FLUID_TYPE = new LazyRegistryLoadable<>(NeoForgeRegistries.Keys.FLUID_TYPES);
   public static final ResourceLocationLoadable<MobEffect> MOB_EFFECT = new RegistryLoadable<>(BuiltInRegistries.MOB_EFFECT);
   public static final ResourceLocationLoadable<Block> BLOCK = new RegistryLoadable<>(BuiltInRegistries.BLOCK);
-  // TODO(M5): no ENCHANTMENT loadable. 1.21 moved enchantments to a datapack registry, so there is no static
-  //  Registry<Enchantment> to build one from; reading one needs a HolderLookup.Provider, from a RegistryOps on the
-  //  datapack path and from RegistryFriendlyByteBuf#registryAccess on the network. ENCHANTMENT_TAG below still works,
-  //  as a tag key only needs the registry's ResourceKey.
+  /**
+   * Enchantments moved to a datapack registry in 1.21, so this reads a {@link Holder} through the caller's registries
+   * rather than a value from a static registry.
+   * @see DynamicRegistryLoadable DynamicRegistryLoadable for where the registries come from, and what happens if none do
+   */
+  public static final ResourceLocationLoadable<Holder<Enchantment>> ENCHANTMENT = new DynamicRegistryLoadable<>(Registries.ENCHANTMENT);
   public static final ResourceLocationLoadable<EntityType<?>> ENTITY_TYPE = new RegistryLoadable<>(BuiltInRegistries.ENTITY_TYPE);
   public static final ResourceLocationLoadable<Item> ITEM = new RegistryLoadable<>(BuiltInRegistries.ITEM);
   public static final ResourceLocationLoadable<Potion> POTION = new RegistryLoadable<>(BuiltInRegistries.POTION);

@@ -6,14 +6,14 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameRules;
-import net.minecraftforge.common.util.FakePlayer;
-import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.event.entity.living.LivingDropsEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.EventBusSubscriber.Bus;
+import net.neoforged.neoforge.common.util.FakePlayer;
+import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import slimeknights.mantle.data.loadable.primitive.IntLoadable;
 import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.item.data.DataEditor;
@@ -26,7 +26,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /** Handles events for any Mantle driven logic. */
-@EventBusSubscriber(modid = Mantle.modId, bus = Bus.FORGE)
+@EventBusSubscriber(modid = Mantle.modId, bus = Bus.GAME)
 public class MantleEvents {
   /* Soulbound */
   /**

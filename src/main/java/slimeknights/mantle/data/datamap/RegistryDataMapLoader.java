@@ -12,9 +12,10 @@ import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.gson.MantleGson;
+import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.field.ContextKey;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
-import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.typed.TypedMap;
 import slimeknights.mantle.util.typed.TypedMapBuilder;
 
@@ -68,7 +69,7 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
    * @param merger      Logic to copy data from the parent into the target element
    */
   public RegistryDataMapLoader(String name, String folder, Registry<R> registry, RecordLoadable<D> dataLoader, BiConsumer<JsonObject,JsonObject> merger) {
-    super(JsonHelper.DEFAULT_GSON, folder);
+    super(MantleGson.DEFAULT, folder);
     this.name = name;
     this.registry = registry;
     this.dataLoader = dataLoader;
@@ -97,7 +98,12 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
             continue;
           }
           // parse the data
-          TypedMap context = TypedMapBuilder.builder().put(ContextKey.DEBUG, name + ' ' + location).build();
+          TypedMap context = TypedMapBuilder.builder()
+            .put(ContextKey.DEBUG, name + ' ' + location)
+            // supplies the registries to any loadable needing them, see OpsHelper#withRegistries. ContextAwareReloadListener
+            // fills these in on a server reload; a client resource pack listener gets RegistryAccess.EMPTY instead.
+            .put(ContextKey.REGISTRY_ACCESS, getRegistryLookup())
+            .build();
           dataMap.put(entry.getValue(), parseData(name, jsons, location, json, locationMap, dataLoader, context, merger));
         } catch (Exception e) {
           Mantle.logger.error("Failed to parse {} data for {}", name, location, e);
@@ -168,7 +174,7 @@ public class RegistryDataMapLoader<R,D> extends SimpleJsonResourceReloadListener
   private static JsonFile processParents(String name, Map<ResourceLocation,JsonElement> jsons, List<ResourceLocation> loadingStack, ResourceLocation location, JsonObject json, BiConsumer<JsonObject,JsonObject> merger) {
     // process the parent until we no longer have one
     while (json.has("parent")) {
-      ResourceLocation parentLocation = JsonHelper.getResourceLocation(json, "parent");
+      ResourceLocation parentLocation = Loadables.RESOURCE_LOCATION.getIfPresent(json, "parent");
       JsonObject parentJson = fetchParent(name, jsons, parentLocation, location, loadingStack);
 
       // if the parent is the only key, treat this as a redirect, don't mutate the JSON, may have to resolve the parent again
