@@ -214,12 +214,6 @@ src/main/java/slimeknights/mantle/data/datamap/RegistryDataMapLoader.java
 src/main/java/slimeknights/mantle/data/datamap/RegistryDataMapProvider.java
 src/main/java/slimeknights/mantle/data/datamap/StateVariantStringBuilder.java
 src/main/java/slimeknights/mantle/data/datamap/package-info.java
-src/main/java/slimeknights/mantle/data/listener/IEarlyReloadListener.java
-src/main/java/slimeknights/mantle/data/listener/IEarlySafeManagerReloadListener.java
-src/main/java/slimeknights/mantle/data/listener/ISafeManagerReloadListener.java
-src/main/java/slimeknights/mantle/data/listener/MergingJsonDataLoader.java
-src/main/java/slimeknights/mantle/data/listener/ResourceValidator.java
-src/main/java/slimeknights/mantle/data/listener/package-info.java
 src/main/java/slimeknights/mantle/data/package-info.java
 src/main/java/slimeknights/mantle/data/predicate/item/ItemPredicate.java
 src/main/java/slimeknights/mantle/datagen/MantleBlockTagProvider.java
