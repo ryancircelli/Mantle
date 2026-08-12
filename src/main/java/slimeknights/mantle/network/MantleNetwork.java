@@ -5,6 +5,7 @@ import slimeknights.mantle.Mantle;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferPacket;
 import slimeknights.mantle.network.packet.DropLecternBookPacket;
 import slimeknights.mantle.network.packet.OpenLecternBookPacket;
+import slimeknights.mantle.network.packet.OpenNamedBookPacket;
 import slimeknights.mantle.network.packet.SwingArmPacket;
 import slimeknights.mantle.network.packet.UpdateHeldPagePacket;
 import slimeknights.mantle.network.packet.UpdateInventoryPagePacket;
@@ -31,8 +32,7 @@ public class MantleNetwork {
     INSTANCE.registerPacket(UpdateInventoryPagePacket.ID, UpdateInventoryPagePacket.class, UpdateInventoryPagePacket::new, PacketFlow.SERVERBOUND);
     INSTANCE.registerPacket(UpdateLecternPagePacket.ID, UpdateLecternPagePacket.class, UpdateLecternPagePacket::new, PacketFlow.SERVERBOUND);
     INSTANCE.registerPacket(DropLecternBookPacket.ID, DropLecternBookPacket.class, DropLecternBookPacket::new, PacketFlow.SERVERBOUND);
-    // TODO(M-client): restore once slimeknights.mantle.client.book ports
-    // INSTANCE.registerPacket(OpenNamedBookPacket.ID, OpenNamedBookPacket.class, OpenNamedBookPacket::new, PacketFlow.CLIENTBOUND);
+    INSTANCE.registerPacket(OpenNamedBookPacket.ID, OpenNamedBookPacket.class, OpenNamedBookPacket::new, PacketFlow.CLIENTBOUND);
     INSTANCE.registerPacket(SwingArmPacket.ID, SwingArmPacket.class, SwingArmPacket::new, PacketFlow.CLIENTBOUND);
     INSTANCE.registerPacket(FluidContainerTransferPacket.ID, FluidContainerTransferPacket.class, FluidContainerTransferPacket::new, PacketFlow.CLIENTBOUND);
   }
