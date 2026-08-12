@@ -1,6 +1,10 @@
 package slimeknights.mantle.test;
 
 import com.google.gson.JsonElement;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import io.netty.buffer.Unpooled;
 import net.minecraft.nbt.NbtOps;
@@ -57,5 +61,38 @@ public abstract class LoadableTest extends BaseMcTest {
   /** Writes the value through {@link NbtOps}, for asserting the resulting tag type */
   public static <T> Tag toNbt(Loadable<T> loadable, T value) {
     return loadable.serialize(NbtOps.INSTANCE, value);
+  }
+
+
+  /* Codec views */
+
+  /** Unwraps a result, failing the test with the error message instead of an empty optional */
+  public static <T> T success(DataResult<T> result) {
+    assertThat(result.error().map(DataResult.PartialResult::message)).as("expected a successful result").isEmpty();
+    return result.result().orElseThrow();
+  }
+
+  /** {@return the error message of a result}, failing the test if it succeeded */
+  public static String error(DataResult<?> result) {
+    assertThat(result.result()).as("expected an error result, got %s", result.result().orElse(null)).isEmpty();
+    return result.error().orElseThrow().message();
+  }
+
+  /** Writes the value through the codec with the given ops, for asserting the written form */
+  public static <O,T> O write(Codec<T> codec, DynamicOps<O> ops, T value) {
+    return success(codec.encodeStart(ops, value));
+  }
+
+  /** Asserts the value survives the codec with the given ops */
+  public static <O,T> void assertCodecRoundTrip(Codec<T> codec, DynamicOps<O> ops, T value) {
+    O written = write(codec, ops, value);
+    Pair<T,O> read = success(codec.decode(ops, written));
+    assertThat(read.getFirst()).as("codec round trip of %s", written).isEqualTo(value);
+  }
+
+  /** Asserts the value survives the codec with both {@link JsonOps} and {@link NbtOps} */
+  public static <T> void assertCodecRoundTrip(Codec<T> codec, T value) {
+    assertCodecRoundTrip(codec, JsonOps.INSTANCE, value);
+    assertCodecRoundTrip(codec, NbtOps.INSTANCE, value);
   }
 }
