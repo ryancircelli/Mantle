@@ -4,10 +4,8 @@
 # sourceSets.test.java until their subjects come across. A test returns when the
 # code it exercises is ported, by deleting its line here.
 
-src/test/java/slimeknights/mantle/MantleEventsTest.java
 src/test/java/slimeknights/mantle/client/book/BookHelperTest.java
 src/test/java/slimeknights/mantle/network/MantlePacketWireTest.java
 src/test/java/slimeknights/mantle/network/PacketDispatchTest.java
 src/test/java/slimeknights/mantle/network/PacketRegistryTest.java
 src/test/java/slimeknights/mantle/network/TestPacketContext.java
-src/test/java/slimeknights/mantle/util/LogicHelperTest.java

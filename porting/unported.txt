@@ -9,7 +9,6 @@
 # This file is deleted in the final PR of the port, when the frontier reaches zero.
 # Sorted, one repo-relative path per line. Blank lines and # comments are ignored.
 
-src/main/java/slimeknights/mantle/MantleEvents.java
 src/main/java/slimeknights/mantle/block/GaugeBlock.java
 src/main/java/slimeknights/mantle/block/IMultipartConnectedBlock.java
 src/main/java/slimeknights/mantle/block/InventoryBlock.java
@@ -209,7 +208,6 @@ src/main/java/slimeknights/mantle/datagen/MantleFluidTagProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleFluidTooltipProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleFluidTransferProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleMenuTagProvider.java
-src/main/java/slimeknights/mantle/datagen/MantleTags.java
 src/main/java/slimeknights/mantle/datagen/MantleValues.java
 src/main/java/slimeknights/mantle/datagen/package-info.java
 src/main/java/slimeknights/mantle/fluid/FluidTransferHelper.java
