@@ -22,6 +22,8 @@ import slimeknights.mantle.data.loadable.common.NBTLoadable;
 import slimeknights.mantle.data.loadable.common.Vector3fLoadable;
 import slimeknights.mantle.test.LoadableTest;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Round trip tests for the loadables wrapping common Minecraft types */
@@ -165,12 +167,25 @@ class CommonLoadableTest extends LoadableTest {
 
   @Test
   void codecLoadable_readsTheFormatDirectly() {
-    // the codec writes an object as the network methods of a codec loadable require a compound tag
     Loadable<Integer> loadable = new CodecLoadable<>(Codec.INT.fieldOf("value").codec());
     assertRoundTrip(loadable, 5);
     // a codec loadable used to force everything through JSON, so this pins that it no longer does
     CompoundTag expected = new CompoundTag();
     expected.putInt("value", 5);
     assertThat(toNbt(loadable, 5)).isEqualTo(expected);
+  }
+
+  @Test
+  void codecLoadable_sendsANonCompoundValueOverTheNetwork() {
+    // the buffer can only carry a compound tag, so a codec writing anything else used to throw a ClassCastException
+    assertRoundTrip(new CodecLoadable<>(Codec.INT), 5);
+    assertRoundTrip(new CodecLoadable<>(Codec.STRING), "text");
+    assertRoundTrip(new CodecLoadable<>(Codec.INT.listOf()), List.of(1, 2, 3));
+  }
+
+  @Test
+  void codecLoadable_writesTheCodecsOwnTags() {
+    assertThat(toNbt(new CodecLoadable<>(Codec.INT), 5)).isEqualTo(IntTag.valueOf(5));
+    assertThat(toNbt(new CodecLoadable<>(Codec.STRING), "text")).isEqualTo(StringTag.valueOf("text"));
   }
 }

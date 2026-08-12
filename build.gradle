@@ -153,6 +153,12 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    // forward the junit switches to the test JVM, notably junit.jupiter.conditions.deactivate to run a disabled benchmark on demand
+    System.properties.each { key, value ->
+        if (key.toString().startsWith('junit.')) {
+            systemProperty key.toString(), value
+        }
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {

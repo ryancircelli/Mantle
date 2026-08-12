@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -11,8 +12,17 @@ import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
-/** Implementation of a loadable using a codec. Note this will be inefficient when reading from and writing to the network */
+import javax.annotation.Nullable;
+
+/** Implementation of a loadable using a codec, reading and writing the codec's own format in every direction. */
 public record CodecLoadable<T>(DynamicOps<Tag> ops, Codec<T> codec) implements Loadable<T> {
+  /**
+   * Key wrapping the codec's value on the network.
+   * {@link FriendlyByteBuf} can only transfer a compound tag, but a codec is free to encode any tag, so the value is
+   * nested under a single key instead of being sent as the packet's tag directly.
+   */
+  private static final String NETWORK_KEY = "value";
+
   public CodecLoadable(Codec<T> codec) {
     this(NbtOps.INSTANCE, codec);
   }
@@ -39,11 +49,20 @@ public record CodecLoadable<T>(DynamicOps<Tag> ops, Codec<T> codec) implements L
 
   @Override
   public T decode(FriendlyByteBuf buffer, TypedMap context) {
-    return buffer.readWithCodec(ops, codec);
+    @Nullable CompoundTag wrapper = buffer.readAnySizeNbt();
+    @Nullable Tag value = wrapper != null ? wrapper.get(NETWORK_KEY) : null;
+    // a missing key means the codec wrote the empty value, which a compound cannot store
+    return codec.parse(ops, value != null ? value : ops.empty()).getOrThrow(false, ErrorFactory.DECODER_EXCEPTION);
   }
 
   @Override
   public void encode(FriendlyByteBuf buffer, T object) {
-    buffer.writeWithCodec(ops, codec, object);
+    Tag value = codec.encodeStart(ops, object).getOrThrow(false, ErrorFactory.ENCODER_EXCEPTION);
+    CompoundTag wrapper = new CompoundTag();
+    // an end tag is not a valid compound value, so it is sent as a missing key
+    if (value.getId() != Tag.TAG_END) {
+      wrapper.put(NETWORK_KEY, value);
+    }
+    buffer.writeNbt(wrapper);
   }
 }
