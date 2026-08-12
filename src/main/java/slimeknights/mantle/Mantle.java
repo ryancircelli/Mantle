@@ -1,7 +1,10 @@
 package slimeknights.mantle;
 
 import net.minecraft.Util;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.data.DataGenerator;
+import net.minecraft.data.PackOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceKey;
@@ -12,11 +15,20 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.common.data.ExistingFileHelper;
+import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.registries.RegisterEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import slimeknights.mantle.command.MantleCommand;
 import slimeknights.mantle.config.Config;
+import slimeknights.mantle.datagen.MantleBlockTagProvider;
+import slimeknights.mantle.datagen.MantleFluidTagProvider;
+import slimeknights.mantle.datagen.MantleFluidTooltipProvider;
+import slimeknights.mantle.datagen.MantleFluidTransferProvider;
+import slimeknights.mantle.datagen.MantleMenuTagProvider;
+import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
 import slimeknights.mantle.loot.LootTableInjector;
 import slimeknights.mantle.loot.MantleLoot;
@@ -27,6 +39,8 @@ import slimeknights.mantle.recipe.MantleRecipes;
 import slimeknights.mantle.recipe.condition.MantleConditions;
 import slimeknights.mantle.recipe.helper.TagPreference;
 import slimeknights.mantle.registration.MantleRegistrations;
+
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Mantle
@@ -52,13 +66,14 @@ public class Mantle {
     instance = this;
 
     FluidContainerTransferManager.INSTANCE.init();
-    // TODO(M-datagen): restore once slimeknights.mantle.datagen ports - MantleTags.init();
+    MantleTags.init();
 
     // packets are registered in common setup as they always were; the channel itself is not built until
     // RegisterPayloadHandlersEvent, which NeoForge fires after every setup event
     modBus.addListener(EventPriority.NORMAL, false, FMLCommonSetupEvent.class, this::commonSetup);
     modBus.addListener(EventPriority.NORMAL, false, RegisterPayloadHandlersEvent.class, MantleNetwork.INSTANCE::registerPayloads);
     modBus.addListener(EventPriority.NORMAL, false, RegisterEvent.class, this::register);
+    modBus.addListener(EventPriority.NORMAL, false, GatherDataEvent.class, this::gatherData);
     MantleConditions.init(modBus);
     MantleIngredients.init(modBus);
     MantleRecipes.init(modBus);
@@ -71,9 +86,6 @@ public class Mantle {
     // is nothing to call it with yet; downstream mods call it once per block entity type from their own listener.
     // OffhandCooldownTracker, 1.20's other capability, is a data attachment now and registers itself above.
 
-    // TODO(M-datagen): restore once slimeknights.mantle.datagen ports
-    // bus.addListener(EventPriority.NORMAL, false, GatherDataEvent.class, this::gatherData);
-
     // TODO(M-item): restore once slimeknights.mantle.item.LecternBookItem ports
     // NeoForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, PlayerInteractEvent.RightClickBlock.class, LecternBookItem::interactWithBlock);
 
@@ -85,9 +97,24 @@ public class Mantle {
 
   private void commonSetup(FMLCommonSetupEvent event) {
     MantleNetwork.registerPackets();
+    MantleCommand.init();
     TagPreference.init();
     LootTableInjector.init();
-    // TODO(M-command): common setup also called MantleCommand.init() - still behind the frontier
+  }
+
+  /** Registers Mantle's own datagen providers */
+  private void gatherData(GatherDataEvent event) {
+    DataGenerator generator = event.getGenerator();
+    boolean server = event.includeServer();
+    boolean client = event.includeClient();
+    PackOutput packOutput = generator.getPackOutput();
+    CompletableFuture<HolderLookup.Provider> lookupProvider = event.getLookupProvider();
+    ExistingFileHelper existingFileHelper = event.getExistingFileHelper();
+    generator.addProvider(server, new MantleBlockTagProvider(packOutput, lookupProvider, existingFileHelper));
+    generator.addProvider(server, new MantleFluidTagProvider(packOutput, lookupProvider, existingFileHelper));
+    generator.addProvider(server, new MantleMenuTagProvider(packOutput, lookupProvider, existingFileHelper));
+    generator.addProvider(server, new MantleFluidTransferProvider(packOutput));
+    generator.addProvider(client, new MantleFluidTooltipProvider(packOutput));
   }
 
   private void register(RegisterEvent event) {

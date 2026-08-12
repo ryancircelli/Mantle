@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import net.minecraft.SharedConstants;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.ClickEvent.Action;
 import net.minecraft.network.chat.Component;
@@ -11,10 +12,9 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.world.level.storage.LevelResource;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.common.crafting.conditions.FalseCondition;
-import net.minecraftforge.common.crafting.conditions.ICondition;
-import net.minecraftforge.fml.ModList;
+import net.neoforged.fml.ModList;
+import net.neoforged.neoforge.common.conditions.FalseCondition;
+import net.neoforged.neoforge.common.conditions.ICondition;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.util.JsonHelper;
 
@@ -37,7 +37,7 @@ public class GeneratePackHelper {
   public static Path getDatapackPath(MinecraftServer server, String packName) {
     // if we have JSON Things, do a global datapack
     if (ModList.get().isLoaded("jsonthings")) {
-      return server.getServerDirectory().toPath().resolve("thingpacks/" + packName);
+      return server.getServerDirectory().resolve("thingpacks/" + packName);
     }
     // TODO: consider option to put in the standard datapacks folder via config property
     // otherwise, do a world local datapack
@@ -69,16 +69,17 @@ public class GeneratePackHelper {
     }
   }
 
-  /** Saves a JSON that removes the given resource using forge conditions */
-  public static boolean saveConditionRemove(Path path, String conditionKey) {
+  /**
+   * Saves a JSON that removes the given resource using a NeoForge {@code neoforge:conditions} block that is always false.
+   * @apiNote  1.20 Forge intercepted a bare {@code "conditions"} (recipes) or {@code "forge:conditions"} (everything else) key by
+   *           hand through {@code CraftingHelper}; 1.21 recipes are codec based like everything else, so NeoForge's single
+   *           {@link ICondition#writeConditions} writes the one key ({@code neoforge:conditions}) that every codec-backed loader
+   *           now understands.
+   */
+  public static boolean saveConditionRemove(Path path, HolderLookup.Provider registries) {
     JsonObject json = new JsonObject();
-    json.add(conditionKey, CraftingHelper.serialize(new ICondition[]{FalseCondition.INSTANCE}));
+    ICondition.writeConditions(registries, json, FalseCondition.INSTANCE);
     return saveJson(json, path);
-  }
-
-  /** Saves a JSON that removes the given resource using forge conditions */
-  public static boolean saveConditionRemove(Path path) {
-    return saveConditionRemove(path, "forge:conditions");
   }
 
   /** Creates a mcmeta to make a valid pack */

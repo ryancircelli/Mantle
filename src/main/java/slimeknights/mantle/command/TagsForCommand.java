@@ -6,8 +6,11 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
@@ -19,10 +22,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.alchemy.PotionUtils;
-import net.minecraft.world.item.alchemy.Potions;
+import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -37,9 +38,8 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.ForgeMod;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandlerItem;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;
 import slimeknights.mantle.command.argument.RegistryTagSource;
 import slimeknights.mantle.command.argument.TagSource;
 import slimeknights.mantle.command.argument.TagSourceArgument;
@@ -47,13 +47,8 @@ import slimeknights.mantle.util.CapabilityHelper;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
-/**
- * Command to list all tags for an entry.
- * TODO 1.21: move to {@link slimeknights.mantle.command.tags}.
- */
+/** Command to list all tags for an entry. */
 @SuppressWarnings("deprecation")
 public class TagsForCommand {
   /** Tag type cannot be found */
@@ -187,28 +182,38 @@ public class TagsForCommand {
     return 0;
   }
 
-  /** Potion tags for held item */
+  /**
+   * Potion tags for held item.
+   * @apiNote  1.21 replaced {@code PotionUtils.getPotion(stack)} with the {@link DataComponents#POTION_CONTENTS} component;
+   *           potions themselves are still a static registry, so the lookup on the far side is unchanged.
+   */
   private static int heldPotion(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
     CommandSourceStack source = context.getSource();
     ItemStack stack = source.getPlayerOrException().getMainHandItem();
-    Potion potion = PotionUtils.getPotion(stack);
-    if (potion != Potions.EMPTY) {
-      return printOwningTags(context, BuiltInRegistries.POTION, potion);
+    PotionContents contents = stack.get(DataComponents.POTION_CONTENTS);
+    Holder<Potion> potion = contents == null ? null : contents.potion().orElse(null);
+    if (potion != null) {
+      return printOwningTags(context, BuiltInRegistries.POTION, potion.value());
     }
     source.sendSuccess(() -> NO_HELD_POTION, true);
     return 0;
   }
 
-  /** Block tags for held item */
+  /**
+   * Enchantment tags for held item.
+   * @apiNote  Enchantments became a datapack registry in 1.21, so unlike the other held-item lookups this cannot use
+   *           {@link BuiltInRegistries} and instead resolves the registry through the command source's registry access.
+   */
   private static int heldEnchantments(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
     CommandSourceStack source = context.getSource();
     ItemStack stack = source.getPlayerOrException().getMainHandItem();
-    Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(stack);
+    var enchantments = stack.getEnchantments().keySet();
     if (!enchantments.isEmpty()) {
+      Registry<Enchantment> registry = source.registryAccess().registryOrThrow(Registries.ENCHANTMENT);
       int totalTags = 0;
       // print tags for each contained enchantment
-      for (Enchantment enchantment : enchantments.keySet()) {
-        totalTags += printOwningTags(context, BuiltInRegistries.ENCHANTMENT, enchantment);
+      for (Holder<Enchantment> enchantment : enchantments) {
+        totalTags += printOwningTags(context, registry, enchantment.value());
       }
       return totalTags;
     }
@@ -221,7 +226,7 @@ public class TagsForCommand {
     CommandSourceStack source = context.getSource();
     ItemStack stack = source.getPlayerOrException().getMainHandItem();
     if (stack.getItem() instanceof SpawnEggItem egg) {
-      EntityType<?> type = egg.getType(stack.getTag());
+      EntityType<?> type = egg.getType(stack);
       return printOwningTags(context, BuiltInRegistries.ENTITY_TYPE, type);
     }
     source.sendSuccess(() -> NO_HELD_ENTITY, true);
@@ -296,7 +301,10 @@ public class TagsForCommand {
   }
 
   /**
-   * Gets the tags for the entity being looked at
+   * Gets the tags for the entity being looked at.
+   * @apiNote  The reach distance used to build the trace comes from vanilla's own {@link Player#entityInteractionRange()} now;
+   *           1.21.1 has no {@code ForgeMod.ENTITY_REACH} equivalent because vanilla ships {@code Attributes.ENTITY_INTERACTION_RANGE}
+   *           itself, so there is nothing left for NeoForge to add.
    * @param context  Context
    * @return  Tags for the looked at block or entity
    * @throws CommandSyntaxException  For command errors
@@ -306,7 +314,7 @@ public class TagsForCommand {
     Player player = source.getPlayerOrException();
     Vec3 start = player.getEyePosition(1F);
     Vec3 look = player.getLookAngle();
-    double range = Objects.requireNonNull(player.getAttribute(ForgeMod.ENTITY_REACH.get())).getValue();
+    double range = player.entityInteractionRange();
     Vec3 direction = start.add(look.x * range, look.y * range, look.z * range);
     AABB bb = player.getBoundingBox().expandTowards(look.x * range, look.y * range, look.z * range).expandTowards(1, 1, 1);
     EntityHitResult entityTrace = ProjectileUtil.getEntityHitResult(source.getLevel(), player, start, direction, bb, e -> true);

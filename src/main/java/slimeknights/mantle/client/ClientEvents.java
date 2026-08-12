@@ -51,6 +51,7 @@ import slimeknights.mantle.client.model.util.MantleItemLayerModel;
 import slimeknights.mantle.client.model.util.ModelHelper;
 import slimeknights.mantle.client.render.FluidCuboid;
 import slimeknights.mantle.client.render.RenderItem;
+import slimeknights.mantle.command.client.MantleClientCommand;
 import slimeknights.mantle.datagen.MantleTags;
 import slimeknights.mantle.fluid.texture.ClientTextureFluidType;
 import slimeknights.mantle.fluid.texture.FluidTextureManager;
@@ -112,7 +113,7 @@ public class ClientEvents {
   static void clientSetup(FMLClientSetupEvent event) {
     event.enqueueWork(() -> RegistrationHelper.forEachWoodType(Sheets::addWoodType));
     BookLoader.registerBook(Mantle.getResource("test"), new FileRepository(Mantle.getResource("books/test")));
-    // TODO(M12-command): MantleClientCommand.init returns with command.client
+    MantleClientCommand.init();
   }
 
   @SubscribeEvent
