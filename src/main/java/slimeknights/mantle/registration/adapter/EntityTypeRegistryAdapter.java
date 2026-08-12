@@ -1,8 +1,9 @@
 package slimeknights.mantle.registration.adapter;
 
+import net.minecraft.core.Registry;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraftforge.registries.IForgeRegistry;
+import net.neoforged.neoforge.registries.RegisterEvent.RegisterHelper;
 
 /**
  * Registry adapter for registering entity types
@@ -10,13 +11,8 @@ import net.minecraftforge.registries.IForgeRegistry;
 @SuppressWarnings("unused")
 public class EntityTypeRegistryAdapter extends RegistryAdapter<EntityType<?>> {
   /** @inheritDoc */
-  public EntityTypeRegistryAdapter(IForgeRegistry<EntityType<?>> registry, String modId) {
-    super(registry, modId);
-  }
-
-  /** @inheritDoc */
-  public EntityTypeRegistryAdapter(IForgeRegistry<EntityType<?>> registry) {
-    super(registry);
+  public EntityTypeRegistryAdapter(Registry<EntityType<?>> registry, RegisterHelper<EntityType<?>> helper, String modId) {
+    super(registry, helper, modId);
   }
 
   /**
