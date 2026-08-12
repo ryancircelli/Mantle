@@ -1,58 +1,32 @@
 package slimeknights.mantle.recipe.helper;
 
-import io.netty.handler.codec.DecoderException;
-import io.netty.handler.codec.EncoderException;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeSerializer;
-import slimeknights.mantle.Mantle;
-
-import javax.annotation.Nullable;
 
 /**
- * Recipe serializer that logs network exceptions before throwing them as otherwise the exceptions may be invisible
+ * Recipe serializer that logs network exceptions before throwing them as otherwise the exceptions may be invisible.
+ * <p>
+ * In 1.20 this interface supplied {@code fromNetwork} and {@code toNetwork} wrapping a pair of "safe" methods. 1.21
+ * replaced both with a single {@link StreamCodec}, so the pair collapsed into {@link #streamCodecSafe()} and the
+ * wrapping moved to {@link LoggingStreamCodec}.
  * @param <T>  Recipe class
  */
 public interface LoggingRecipeSerializer<T extends Recipe<?>> extends RecipeSerializer<T> {
   /**
-   * Read the recipe from the packet
-   * @param id      Recipe ID
-   * @param buffer  Buffer instance
-   * @return  Parsed recipe
-   * @throws RuntimeException  If any errors happen, the exception will be logged automatically
+   * The codec doing the actual reading and writing, which {@link #streamCodec()} wraps in logging.
+   * @return  Stream codec without logging
    */
-  @Nullable
-  T fromNetworkSafe(ResourceLocation id, FriendlyByteBuf buffer);
+  StreamCodec<RegistryFriendlyByteBuf,T> streamCodecSafe();
 
   /**
-   * Write the method to the buffer
-   * @param buffer  Buffer instance
-   * @param recipe  Recipe instance
-   * @throws RuntimeException  If any errors happen, the exception will be logged automatically
+   * {@inheritDoc}
+   * @implNote  Builds a fresh wrapper per call. An implementation syncing many recipes should cache
+   *            {@code new LoggingStreamCodec<>(this, codec)} in a field and return it from both methods instead.
    */
-  void toNetworkSafe(FriendlyByteBuf buffer, T recipe);
-
-  @Nullable
   @Override
-  default T fromNetwork(ResourceLocation id, FriendlyByteBuf buffer) {
-    try {
-      return fromNetworkSafe(id, buffer);
-    } catch (RuntimeException e) {
-      String error = this.getClass().getSimpleName() + ": Error reading recipe " + id + " from packet";
-      Mantle.logger.error("{}", error, e);
-      throw new DecoderException(error + " - " + e.getMessage(), e);
-    }
-  }
-
-  @Override
-  default void toNetwork(FriendlyByteBuf buffer, T recipe) {
-    try {
-      toNetworkSafe(buffer, recipe);
-    } catch (RuntimeException e) {
-      String error = this.getClass().getSimpleName() + ": Error writing recipe " + recipe.getId() + " of class " + recipe.getClass().getSimpleName() + " to packet";
-      Mantle.logger.error("{}", error, e);
-      throw new EncoderException(error + " - " + e.getMessage(), e);
-    }
+  default StreamCodec<RegistryFriendlyByteBuf,T> streamCodec() {
+    return new LoggingStreamCodec<>(this, streamCodecSafe());
   }
 }
