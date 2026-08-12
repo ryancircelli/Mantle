@@ -18,11 +18,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import slimeknights.mantle.config.Config;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferManager;
+import slimeknights.mantle.loot.LootTableInjector;
+import slimeknights.mantle.loot.MantleLoot;
 import slimeknights.mantle.network.MantleNetwork;
 import slimeknights.mantle.recipe.MantleIngredients;
 import slimeknights.mantle.recipe.MantleRecipes;
 import slimeknights.mantle.recipe.condition.MantleConditions;
 import slimeknights.mantle.recipe.helper.TagPreference;
+import slimeknights.mantle.registration.MantleRegistrations;
 
 /**
  * Mantle
@@ -58,9 +61,14 @@ public class Mantle {
     MantleConditions.init(modBus);
     MantleIngredients.init(modBus);
     MantleRecipes.init(modBus);
+    MantleRegistrations.init(modBus);
+    MantleLoot.init(modBus);
 
     // TODO(M-capability): restore once util/OffhandCooldownTracker ports (needs slimeknights.mantle.network)
     // bus.addListener(EventPriority.NORMAL, false, RegisterCapabilitiesEvent.class, this::registerCapabilities);
+    // note: slimeknights.mantle.block.entity.InventoryBlockEntity#registerCapability is the RegisterCapabilitiesEvent
+    // hook for item handler exposure - Mantle itself registers no InventoryBlockEntity subclass of its own, so there
+    // is nothing to call it with yet; downstream mods call it once per block entity type from their own listener.
 
     // TODO(M-datagen): restore once slimeknights.mantle.datagen ports
     // bus.addListener(EventPriority.NORMAL, false, GatherDataEvent.class, this::gatherData);
@@ -77,20 +85,20 @@ public class Mantle {
   private void commonSetup(FMLCommonSetupEvent event) {
     MantleNetwork.registerPackets();
     TagPreference.init();
-    // TODO(M-command/util/loot): common setup also called MantleCommand.init(), OffhandCooldownTracker.init()
-    // and LootTableInjector.init() - all still behind the frontier
+    LootTableInjector.init();
+    // TODO(M-command): common setup also called MantleCommand.init() - still behind the frontier
   }
 
   private void register(RegisterEvent event) {
     ResourceKey<?> key = event.getRegistryKey();
     if (key == Registries.RECIPE_SERIALIZER) {
-      // TODO(M-loot/predicate/command): register() also wired the predicate loaders, block entity signs,
-      // the command argument type and the loot modifier
+      // TODO(M-predicate/command): register() also wired the predicate loaders and the command argument type
 
       // fluid container transfer
       FluidContainerTransferManager.registerDefaults();
     }
     MantleConditions.registerLootConditions(event);
+    MantleLoot.register(event);
   }
 
   /**
