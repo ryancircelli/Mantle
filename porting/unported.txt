@@ -210,11 +210,8 @@ src/main/java/slimeknights/mantle/datagen/MantleMenuTagProvider.java
 src/main/java/slimeknights/mantle/datagen/MantleValues.java
 src/main/java/slimeknights/mantle/datagen/package-info.java
 src/main/java/slimeknights/mantle/fluid/FluidTransferHelper.java
-src/main/java/slimeknights/mantle/fluid/InvertedFluid.java
 src/main/java/slimeknights/mantle/fluid/InvertedFluidType.java
 src/main/java/slimeknights/mantle/fluid/TextureFluidType.java
-src/main/java/slimeknights/mantle/fluid/UnplaceableFluid.java
-src/main/java/slimeknights/mantle/fluid/package-info.java
 src/main/java/slimeknights/mantle/fluid/texture/AbstractFluidTextureProvider.java
 src/main/java/slimeknights/mantle/fluid/texture/ClientInvertedFluidType.java
 src/main/java/slimeknights/mantle/fluid/texture/ClientTextureFluidType.java
