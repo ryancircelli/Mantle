@@ -9,4 +9,3 @@
 # This file is deleted in the final PR of the port, when the frontier reaches zero.
 # Sorted, one repo-relative path per line. Blank lines and # comments are ignored.
 
-src/main/java/slimeknights/mantle/util/CombatHelper.java
