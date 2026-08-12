@@ -2,6 +2,9 @@ package slimeknights.mantle.data.loadable.mapping;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
@@ -47,8 +50,18 @@ public class MappedLoadable<F,T> implements Loadable<T> {
   }
 
   @Override
+  public <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return from.apply(base.convert(ops, input, key, context), ErrorFactory.JSON_SYNTAX_ERROR);
+  }
+
+  @Override
   public JsonElement serialize(T object) {
     return base.serialize(to.apply(object, ErrorFactory.RUNTIME));
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, T object) {
+    return base.serialize(ops, to.apply(object, ErrorFactory.RUNTIME));
   }
 
   @Override
@@ -75,8 +88,18 @@ public class MappedLoadable<F,T> implements Loadable<T> {
     }
 
     @Override
+    public <O> T deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+      return from.apply(base.deserialize(ops, map, context), ErrorFactory.JSON_SYNTAX_ERROR);
+    }
+
+    @Override
     public void serialize(T object, JsonObject json) {
       base.serialize(to.apply(object, ErrorFactory.RUNTIME), json);
+    }
+
+    @Override
+    public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, T object, RecordBuilder<O> builder) {
+      return base.serialize(ops, to.apply(object, ErrorFactory.RUNTIME), builder);
     }
 
     @Override

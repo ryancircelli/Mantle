@@ -2,6 +2,9 @@ package slimeknights.mantle.data.loadable.field;
 
 import com.google.common.base.Objects;
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -33,10 +36,24 @@ public record DefaultingField<T,P>(Loadable<T> loadable, String key, T defaultVa
   }
 
   @Override
+  public <O> T get(DynamicOps<O> ops, MapLike<O> map, String key, TypedMap context) {
+    return loadable.getOrDefault(ops, map, key, defaultValue, context);
+  }
+
+  @Override
   public void serialize(P parent, JsonObject json) {
     T object = getter.apply(parent);
     if (skipSerialize == null || !skipSerialize.test(defaultValue, object)) {
       json.add(key, loadable.serialize(object));
     }
+  }
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, P parent, RecordBuilder<O> builder) {
+    T object = getter.apply(parent);
+    if (skipSerialize == null || !skipSerialize.test(defaultValue, object)) {
+      return builder.add(key, loadable.serialize(ops, object));
+    }
+    return builder;
   }
 }

@@ -1,6 +1,9 @@
 package slimeknights.mantle.data.loadable.field;
 
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -16,12 +19,22 @@ public record ConstantField<T>(T fromJson, T fromBuffer) implements RecordField<
   }
 
   @Override
+  public <O> T get(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+    return fromJson;
+  }
+
+  @Override
   public T decode(FriendlyByteBuf buffer, TypedMap context) {
     return fromBuffer;
   }
 
   @Override
   public void serialize(Object parent, JsonObject json) {}
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, Object parent, RecordBuilder<O> builder) {
+    return builder;
+  }
 
   @Override
   public void encode(FriendlyByteBuf buffer, Object parent) {}

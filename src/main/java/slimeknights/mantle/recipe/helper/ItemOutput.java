@@ -3,6 +3,7 @@ package slimeknights.mantle.recipe.helper;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DynamicOps;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.nbt.CompoundTag;
@@ -14,6 +15,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ItemLike;
 import slimeknights.mantle.data.loadable.LoadableCodec;
 import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.common.ItemStackLoadable;
 import slimeknights.mantle.data.loadable.common.NBTLoadable;
 import slimeknights.mantle.data.loadable.field.LoadableField;
@@ -302,6 +304,26 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
         return fromStack(stack.convert(element, key, context));
       }
       return deserialize(GsonHelper.convertToJsonObject(element, key), context);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @implNote  Bridges through gson rather than reading the format directly, as the tag form is written against JSON
+     *            types. Restated explicitly because the record loadable default would otherwise skip the compact form
+     *            handled above.
+     */
+    @Override
+    public <O> ItemOutput convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+      return convert(OpsHelper.toJson(ops, input), key, context);
+    }
+
+    /**
+     * {@inheritDoc}
+     * @implNote  Bridges through gson, see {@link #convert(DynamicOps, Object, String, TypedMap)}.
+     */
+    @Override
+    public <O> O serialize(DynamicOps<O> ops, ItemOutput output) {
+      return OpsHelper.fromJson(ops, serialize(output));
     }
 
     @Override

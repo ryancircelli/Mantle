@@ -1,14 +1,21 @@
 package slimeknights.mantle.data.loadable.common;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.util.GsonHelper;
 import org.joml.Vector3f;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
+
+import java.util.List;
+import java.util.stream.Stream;
 
 /** Loadable for {@link Vector3f}. Supports reading as an array or a JSON object. */
 public enum Vector3fLoadable implements RecordLoadable<Vector3f> {
@@ -16,18 +23,23 @@ public enum Vector3fLoadable implements RecordLoadable<Vector3f> {
 
   @Override
   public Vector3f convert(JsonElement element, String key, TypedMap context) {
-    if (element.isJsonArray()) {
-      JsonArray array = element.getAsJsonArray();
-      if (array.size() != 3) {
-        throw new JsonParseException("Expected " + key + " to be size 3, found " + array.size());
+    return convert(JsonOps.INSTANCE, element, key, context);
+  }
+
+  @Override
+  public <O> Vector3f convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    if (OpsHelper.isList(ops, input)) {
+      List<O> list = OpsHelper.getList(ops, input, key);
+      if (list.size() != 3) {
+        throw new JsonParseException("Expected " + key + " to be size 3, found " + list.size());
       }
       return new Vector3f(
-        GsonHelper.convertToFloat(array.get(0), key + "[0]"),
-        GsonHelper.convertToFloat(array.get(1), key + "[1]"),
-        GsonHelper.convertToFloat(array.get(2), key + "[2]")
+        OpsHelper.getNumber(ops, list.get(0), key + "[0]").floatValue(),
+        OpsHelper.getNumber(ops, list.get(1), key + "[1]").floatValue(),
+        OpsHelper.getNumber(ops, list.get(2), key + "[2]").floatValue()
       );
     }
-    return deserialize(GsonHelper.convertToJsonObject(element, key), context);
+    return RecordLoadable.super.convert(ops, input, key, context);
   }
 
   @Override
@@ -39,13 +51,36 @@ public enum Vector3fLoadable implements RecordLoadable<Vector3f> {
     );
   }
 
+  /** Reads a required float field from a map */
+  private static <O> float getFloat(DynamicOps<O> ops, MapLike<O> map, String key) {
+    O value = map.get(key);
+    if (value == null) {
+      throw new JsonParseException("Missing JSON field '" + key + "'");
+    }
+    return OpsHelper.getNumber(ops, value, key).floatValue();
+  }
+
+  @Override
+  public <O> Vector3f deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+    return new Vector3f(getFloat(ops, map, "x"), getFloat(ops, map, "y"), getFloat(ops, map, "z"));
+  }
+
   @Override
   public JsonElement serialize(Vector3f vector) {
-    JsonArray array = new JsonArray();
-    array.add(vector.x());
-    array.add(vector.y());
-    array.add(vector.z());
-    return array;
+    return serialize(JsonOps.INSTANCE, vector);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, Vector3f vector) {
+    return ops.createList(Stream.of(ops.createFloat(vector.x()), ops.createFloat(vector.y()), ops.createFloat(vector.z())));
+  }
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, Vector3f vector, RecordBuilder<O> builder) {
+    if (vector.x != 0) builder = builder.add("x", ops.createFloat(vector.x));
+    if (vector.y != 0) builder = builder.add("y", ops.createFloat(vector.y));
+    if (vector.z != 0) builder = builder.add("z", ops.createFloat(vector.z));
+    return builder;
   }
 
   @Override

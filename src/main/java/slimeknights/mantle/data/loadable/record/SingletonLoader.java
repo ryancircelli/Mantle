@@ -1,6 +1,9 @@
 package slimeknights.mantle.data.loadable.record;
 
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
@@ -27,7 +30,17 @@ public class SingletonLoader<T> implements RecordLoadable<T> {
   }
 
   @Override
+  public <O> T deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+    return instance;
+  }
+
+  @Override
   public void serialize(T object, JsonObject json) {}
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, T object, RecordBuilder<O> builder) {
+    return builder;
+  }
 
   @Override
   public T decode(FriendlyByteBuf buffer, TypedMap context) {

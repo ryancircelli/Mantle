@@ -1,6 +1,9 @@
 package slimeknights.mantle.data.loadable.field;
 
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import net.minecraft.network.FriendlyByteBuf;
 import org.jetbrains.annotations.Nullable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -22,9 +25,20 @@ public record UnsyncedField<T,P>(LoadableField<T,P> field, @Nullable T clientVal
     return field.get(json, key, context);
   }
 
+  @Nullable
+  @Override
+  public <O> T get(DynamicOps<O> ops, MapLike<O> map, String key, TypedMap context) {
+    return field.get(ops, map, key, context);
+  }
+
   @Override
   public void serialize(P parent, JsonObject json) {
     field.serialize(parent, json);
+  }
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, P parent, RecordBuilder<O> builder) {
+    return field.serialize(ops, parent, builder);
   }
 
   @Override

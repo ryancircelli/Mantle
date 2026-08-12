@@ -2,6 +2,7 @@ package slimeknights.mantle.data.loadable;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
@@ -11,6 +12,7 @@ import com.mojang.serialization.RecordBuilder;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Stream;
 
 /**
  * Helpers for reading and writing values of an arbitrary {@link DynamicOps} format, plus bridges between such a
@@ -86,6 +88,37 @@ public class OpsHelper {
   /** Converts a map into a single value of its format, used when a loadable wishes to treat a map as an element. */
   public static <O> O toValue(DynamicOps<O> ops, MapLike<O> map) {
     return ops.createMap(map.entries());
+  }
+
+  /** Shared instance of the empty map, safe to reuse as it has no state */
+  private static final MapLike<?> EMPTY_MAP = new MapLike<>() {
+    @Nullable
+    @Override
+    public Object get(Object key) {
+      return null;
+    }
+
+    @Nullable
+    @Override
+    public Object get(String key) {
+      return null;
+    }
+
+    @Override
+    public Stream<Pair<Object,Object>> entries() {
+      return Stream.empty();
+    }
+
+    @Override
+    public String toString() {
+      return "MapLike[]";
+    }
+  };
+
+  /** {@return a map with no entries in the given format}, used by loadables supporting a form with no fields */
+  @SuppressWarnings("unchecked")  // safe, the map has no values to be of the wrong type
+  public static <O> MapLike<O> emptyMap() {
+    return (MapLike<O>)EMPTY_MAP;
   }
 
 

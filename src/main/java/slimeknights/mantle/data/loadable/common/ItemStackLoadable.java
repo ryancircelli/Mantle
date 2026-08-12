@@ -2,6 +2,10 @@ package slimeknights.mantle.data.loadable.common;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import io.netty.handler.codec.EncoderException;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
@@ -11,6 +15,7 @@ import net.minecraft.world.item.Items;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.IntLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
@@ -111,6 +116,15 @@ public class ItemStackLoadable {
     }
 
     @Override
+    public <O> ItemStack deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+      int count = 1;
+      if (this == READ_COUNT) {
+        count = COUNT.get(ops, map, context);
+      }
+      return makeStack(ITEM.get(ops, map, context), count, NBT.get(ops, map, context));
+    }
+
+    @Override
     public void serialize(ItemStack stack, JsonObject json) {
       ITEM.serialize(stack, json);
       if (this == READ_COUNT) {
@@ -119,23 +133,42 @@ public class ItemStackLoadable {
       NBT.serialize(stack, json);
     }
 
+    @Override
+    public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, ItemStack stack, RecordBuilder<O> builder) {
+      builder = ITEM.serialize(ops, stack, builder);
+      if (this == READ_COUNT) {
+        builder = COUNT.serialize(ops, stack, builder);
+      }
+      return NBT.serialize(ops, stack, builder);
+    }
 
-    /* Compact JSON */
+
+    /* Compact form */
 
     @Override
     public ItemStack convert(JsonElement element, String key, TypedMap context) {
-      if (element.isJsonPrimitive()) {
-        return OPTIONAL_ITEM.convert(element, key, context);
+      return convert(JsonOps.INSTANCE, element, key, context);
+    }
+
+    @Override
+    public <O> ItemStack convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+      if (!OpsHelper.isMap(ops, input) && !OpsHelper.isList(ops, input)) {
+        return OPTIONAL_ITEM.convert(ops, input, key, context);
       }
-      return RecordLoadable.super.convert(element, key, context);
+      return RecordLoadable.super.convert(ops, input, key, context);
     }
 
     @Override
     public JsonElement serialize(ItemStack stack) {
+      return serialize(JsonOps.INSTANCE, stack);
+    }
+
+    @Override
+    public <O> O serialize(DynamicOps<O> ops, ItemStack stack) {
       if ((this == FIXED_COUNT || stack.getCount() == 1) && !stack.hasTag()) {
-        return OPTIONAL_ITEM.serialize(stack);
+        return OPTIONAL_ITEM.serialize(ops, stack);
       }
-      return RecordLoadable.super.serialize(stack);
+      return RecordLoadable.super.serialize(ops, stack);
     }
 
 
