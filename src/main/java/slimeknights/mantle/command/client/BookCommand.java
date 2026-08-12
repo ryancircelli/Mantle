@@ -53,7 +53,7 @@ public class BookCommand {
   private static final String EXPORT_SUCCESS = "command.mantle.book.export.success";
   private static final String EXPORT_SUCCESS_HTML = "command.mantle.book.export.html.success";
   private static final SimpleCommandExceptionType EXPORT_FAIL = new SimpleCommandExceptionType(Component.translatable("command.mantle.book.export.error_generic"));
-  private static final DynamicCommandExceptionType EXPORT_FAIL_IO = new DynamicCommandExceptionType(path -> Component.translatable("command.mantle.book.export.error_io", path));
+  private static final DynamicCommandExceptionType EXPORT_FAIL_IO = new DynamicCommandExceptionType(path -> Component.translatable("command.mantle.book.export.error_io", String.valueOf(path)));
 
   private static final String DEFAULT_BOOK_VERSION = "20";
   private static final String VERSION_FULL = "1.20";
@@ -382,7 +382,7 @@ public class BookCommand {
   public static void bookNotFound(ResourceLocation book) {
     Player player = Minecraft.getInstance().player;
     if (player != null) {
-      player.displayClientMessage(Component.translatable(BOOK_NOT_FOUND, book).withStyle(ChatFormatting.RED), false);
+      player.displayClientMessage(Component.translatable(BOOK_NOT_FOUND, book.toString()).withStyle(ChatFormatting.RED), false);
     }
   }
 }

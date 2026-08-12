@@ -26,7 +26,7 @@ import static slimeknights.mantle.Mantle.getResource;
  */
 public class RegistryArgument {
   /* Name is invalid */
-  private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(name -> Component.translatable("command.mantle.registry.not_found", name));
+  private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(name -> Component.translatable("command.mantle.registry.not_found", String.valueOf(name)));
 
   // suggestion providers
   /** Suggestion provider for a registry */

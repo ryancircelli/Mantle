@@ -177,6 +177,10 @@ public class Mantle {
 
   /**
    * Makes a translation text component for the given name
+   * <p>
+   * As of 1.21 every argument must be a {@link Component}, {@link Number}, {@link Boolean} or {@link String};
+   * {@code TranslatableContents} throws {@link IllegalArgumentException} on anything else, where 1.20 quietly rendered
+   * it through {@code String.valueOf}. Call {@code toString()} on a resource location, key or path before passing it.
    * @param base  Base name, such as "block" or "gui"
    * @param name  Object name
    * @param args  Additional arguments to format strings

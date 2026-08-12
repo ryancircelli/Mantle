@@ -65,9 +65,9 @@ public class RemoveRecipesCommand {
 
   // failure
   /** Error on invalid item or tag ID */
-  private static final DynamicCommandExceptionType ITEM_NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "item.not_found", id));
+  private static final DynamicCommandExceptionType ITEM_NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "item.not_found", String.valueOf(id)));
   /** Error on invalid preset */
-  private static final DynamicCommandExceptionType PRESET_NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "remove_recipes.preset_not_found", id));
+  private static final DynamicCommandExceptionType PRESET_NOT_FOUND = new DynamicCommandExceptionType(id -> Mantle.makeComponent("command", "remove_recipes.preset_not_found", String.valueOf(id)));
 
   // presets
   /** Loadable for saving a list of recipe types */
