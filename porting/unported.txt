@@ -326,8 +326,6 @@ src/main/java/slimeknights/mantle/recipe/data/ItemNameIngredient.java
 src/main/java/slimeknights/mantle/recipe/data/ItemNameOutput.java
 src/main/java/slimeknights/mantle/recipe/data/NBTNameIngredient.java
 src/main/java/slimeknights/mantle/recipe/data/package-info.java
-src/main/java/slimeknights/mantle/recipe/helper/FluidOutput.java
-src/main/java/slimeknights/mantle/recipe/helper/ItemOutput.java
 src/main/java/slimeknights/mantle/recipe/helper/LoadableIngredientSerializer.java
 src/main/java/slimeknights/mantle/recipe/helper/LoadableRecipeSerializer.java
 src/main/java/slimeknights/mantle/recipe/helper/LoggingRecipeSerializer.java
@@ -335,12 +333,10 @@ src/main/java/slimeknights/mantle/recipe/helper/RecipeHelper.java
 src/main/java/slimeknights/mantle/recipe/helper/SimpleFinishedRecipe.java
 src/main/java/slimeknights/mantle/recipe/helper/SimpleRecipeSerializer.java
 src/main/java/slimeknights/mantle/recipe/helper/TagEmptyCondition.java
-src/main/java/slimeknights/mantle/recipe/helper/TagPreference.java
 src/main/java/slimeknights/mantle/recipe/helper/TypeAwareRecipeSerializer.java
 src/main/java/slimeknights/mantle/recipe/helper/package-info.java
 src/main/java/slimeknights/mantle/recipe/ingredient/EntityIngredient.java
 src/main/java/slimeknights/mantle/recipe/ingredient/FluidContainerIngredient.java
-src/main/java/slimeknights/mantle/recipe/ingredient/FluidIngredient.java
 src/main/java/slimeknights/mantle/recipe/ingredient/ItemIngredient.java
 src/main/java/slimeknights/mantle/recipe/ingredient/PotionDisplayIngredient.java
 src/main/java/slimeknights/mantle/recipe/ingredient/PotionIngredient.java
