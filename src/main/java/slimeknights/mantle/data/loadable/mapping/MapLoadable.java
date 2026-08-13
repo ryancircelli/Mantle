@@ -64,9 +64,11 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
     Map<K,V> builder = createBuilder(entries.size());
     String mapKey = key + "'s key";
     for (Pair<O,O> entry : entries) {
+      // the key is read through the same ops and context as the value; a key loadable is a loadable like any other,
+      // and a datapack registry loadable reaches the registries only through one of the two
       String entryKey = OpsHelper.getString(ops, entry.getFirst(), mapKey);
       builder.put(
-        keyLoadable.parseString(entryKey, mapKey),
+        keyLoadable.convert(ops, entry.getFirst(), mapKey, context),
         valueLoadable.convert(ops, entry.getSecond(), entryKey, context));
     }
     return build(builder);
