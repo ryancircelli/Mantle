@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapLike;
 import org.jetbrains.annotations.ApiStatus.NonExtendable;
@@ -106,6 +107,22 @@ public interface Loadable<T> extends JsonDeserializer<T>, JsonSerializer<T>, Str
    */
   default <O> O serialize(DynamicOps<O> ops, T object) {
     return OpsHelper.fromJson(ops, serialize(object));
+  }
+
+
+  /**
+   * Views this loadable as a {@link com.mojang.serialization.Codec}, for use with any API written against codecs.
+   * <p>
+   * The codec reads and writes whichever format its caller passes rather than converting to a fixed one, and reports
+   * failures as a {@link com.mojang.serialization.DataResult} error instead of throwing.
+   * @return  Codec backed by this loadable
+   * @apiNote  {@link slimeknights.mantle.data.loadable.record.RecordLoadable} does not override this to go through
+   *           {@link slimeknights.mantle.data.loadable.record.RecordLoadable#mapCodec()}, as a record loadable is free
+   *           to read and write a value which is not a map (such as a compact form) and the map codec cannot express
+   *           that.
+   */
+  default Codec<T> codec() {
+    return new LoadableCodec<>(this);
   }
 
 
