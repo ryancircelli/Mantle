@@ -5,7 +5,8 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 /**
- * Packet instance that automatically wraps the logic in {@link NetworkEvent.Context#enqueueWork(Runnable)} for thread safety
+ * Packet instance that automatically wraps the logic in {@link NetworkEvent.Context#enqueueWork(Runnable)} for thread safety.
+ * See {@link IPacket.Threadsafe} for the counterpart that hands the handler a {@link PacketContext} instead.
  */
 public interface IThreadsafePacket extends ISimplePacket {
   @Override
