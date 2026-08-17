@@ -5,9 +5,10 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -18,7 +19,7 @@ import javax.annotation.Nullable;
 public record CodecLoadable<T>(DynamicOps<Tag> ops, Codec<T> codec) implements Loadable<T> {
   /**
    * Key wrapping the codec's value on the network.
-   * {@link FriendlyByteBuf} can only transfer a compound tag, but a codec is free to encode any tag, so the value is
+   * {@link RegistryFriendlyByteBuf} can only transfer a compound tag, but a codec is free to encode any tag, so the value is
    * nested under a single key instead of being sent as the packet's tag directly.
    */
   private static final String NETWORK_KEY = "value";
@@ -34,7 +35,7 @@ public record CodecLoadable<T>(DynamicOps<Tag> ops, Codec<T> codec) implements L
 
   @Override
   public <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
-    return codec.parse(ops, input).getOrThrow(false, ErrorFactory.JSON_SYNTAX_ERROR);
+    return codec.parse(ops, input).getOrThrow(ErrorFactory.JSON_SYNTAX_ERROR::create);
   }
 
   @Override
@@ -44,20 +45,20 @@ public record CodecLoadable<T>(DynamicOps<Tag> ops, Codec<T> codec) implements L
 
   @Override
   public <O> O serialize(DynamicOps<O> ops, T object) {
-    return codec.encodeStart(ops, object).getOrThrow(false, ErrorFactory.RUNTIME);
+    return codec.encodeStart(ops, object).getOrThrow(ErrorFactory.RUNTIME::create);
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer, TypedMap context) {
-    @Nullable CompoundTag wrapper = buffer.readAnySizeNbt();
-    @Nullable Tag value = wrapper != null ? wrapper.get(NETWORK_KEY) : null;
+  public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
+    @Nullable Tag wrapper = buffer.readNbt(NbtAccounter.unlimitedHeap());
+    @Nullable Tag value = wrapper instanceof CompoundTag compound ? compound.get(NETWORK_KEY) : null;
     // a missing key means the codec wrote the empty value, which a compound cannot store
-    return codec.parse(ops, value != null ? value : ops.empty()).getOrThrow(false, ErrorFactory.DECODER_EXCEPTION);
+    return codec.parse(ops, value != null ? value : ops.empty()).getOrThrow(ErrorFactory.DECODER_EXCEPTION::create);
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, T object) {
-    Tag value = codec.encodeStart(ops, object).getOrThrow(false, ErrorFactory.ENCODER_EXCEPTION);
+  public void encode(RegistryFriendlyByteBuf buffer, T object) {
+    Tag value = codec.encodeStart(ops, object).getOrThrow(ErrorFactory.ENCODER_EXCEPTION::create);
     CompoundTag wrapper = new CompoundTag();
     // an end tag is not a valid compound value, so it is sent as a missing key
     if (value.getId() != Tag.TAG_END) {

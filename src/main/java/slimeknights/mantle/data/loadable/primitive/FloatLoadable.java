@@ -4,7 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
@@ -58,7 +58,7 @@ public record FloatLoadable(float min, float max) implements Loadable<Float> {
   }
 
   @Override
-  public Float decode(FriendlyByteBuf buffer, TypedMap context) {
+  public Float decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return buffer.readFloat();
   }
 
@@ -73,7 +73,7 @@ public record FloatLoadable(float min, float max) implements Loadable<Float> {
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, Float object) {
+  public void encode(RegistryFriendlyByteBuf buffer, Float object) {
     buffer.writeFloat(object);
   }
 

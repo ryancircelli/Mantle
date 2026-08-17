@@ -1,9 +1,10 @@
 package slimeknights.mantle.data.loadable.primitive;
 
-import net.minecraft.network.FriendlyByteBuf;
+import com.google.gson.JsonSyntaxException;
+import net.minecraft.ResourceLocationException;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.data.loadable.Loadables;
-import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.typed.TypedMap;
 
 /**
@@ -26,15 +27,33 @@ public interface ResourceLocationLoadable<T> extends StringLoadable<T> {
     }
 
     @Override
-    public ResourceLocation decode(FriendlyByteBuf buffer, TypedMap context) {
+    public ResourceLocation decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return buffer.readResourceLocation();
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, ResourceLocation value) {
+    public void encode(RegistryFriendlyByteBuf buffer, ResourceLocation value) {
       buffer.writeResourceLocation(value);
     }
   };
+
+  /**
+   * Parses a resource location, throwing a JSON exception naming the key instead of returning null.
+   * @param text  Text to parse
+   * @param key   Key that contained the text, used for exceptions only
+   * @return  Parsed resource location
+   * @throws com.google.gson.JsonSyntaxException  If the text is not a valid resource location
+   * @apiNote  {@link slimeknights.mantle.util.JsonHelper#parseResourceLocation(String, String)} delegates here. The
+   *           logic lives on this side because that class depends on this package and not the other way around.
+   */
+  static ResourceLocation parse(String text, String key) {
+    // basically the inside of ResourceLocation#tryParse, but with a JSON exception instead of being nullable
+    try {
+      return ResourceLocation.parse(text);
+    } catch (ResourceLocationException ex) {
+      throw new JsonSyntaxException("Expected " + key + " to be a resource location, was '" + text + "'", ex);
+    }
+  }
 
   /**
    * Converts this value from a resource location.
@@ -53,7 +72,7 @@ public interface ResourceLocationLoadable<T> extends StringLoadable<T> {
 
   @Override
   default T parseString(String value, String key, TypedMap context) {
-    return fromKey(JsonHelper.parseResourceLocation(value, key), key, context);
+    return fromKey(parse(value, key), key, context);
   }
 
   /**

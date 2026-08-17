@@ -7,7 +7,7 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.MapLike;
 import io.netty.handler.codec.DecoderException;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.IAmLoadable;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.OpsHelper;
@@ -194,7 +194,7 @@ public class EitherLoadable {
     }
 
     /** Gets the loadable instance from the buffer */
-    default Streamable<T> loadableFromNetwork(FriendlyByteBuf buffer) {
+    default Streamable<T> loadableFromNetwork(RegistryFriendlyByteBuf buffer) {
       List<? extends Streamable<T>> networks = network();
       // size 1 means we have a fixed network logic, use that
       int size = networks.size();
@@ -210,7 +210,7 @@ public class EitherLoadable {
     }
 
     @Override
-    default void encode(FriendlyByteBuf buffer, T object) {
+    default void encode(RegistryFriendlyByteBuf buffer, T object) {
       List<? extends Streamable<T>> networks = network();
       // size 1 means we have a fixed network logic, use that
       if (networks.size() == 1) {
@@ -267,7 +267,7 @@ public class EitherLoadable {
     }
 
     @Override
-    public T decode(FriendlyByteBuf buffer, TypedMap context) {
+    public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return loadableFromNetwork(buffer).decode(buffer, context);
     }
   }
@@ -297,12 +297,12 @@ public class EitherLoadable {
     }
 
     @Override
-    public T decode(FriendlyByteBuf buffer, TypedMap context) {
+    public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return loadableFromNetwork(buffer).decode(buffer, context);
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, T object) {
+    public void encode(RegistryFriendlyByteBuf buffer, T object) {
       EitherImpl.super.encode(buffer, object);
     }
   }

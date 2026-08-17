@@ -3,7 +3,7 @@ package slimeknights.mantle.data.registry;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import io.netty.handler.codec.DecoderException;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.ResourceLocationLoadable;
@@ -49,12 +49,12 @@ public abstract class AbstractNamedComponentRegistry<T> implements ResourceLocat
 
   /** Writes the value to the buffer */
   @Override
-  public void encode(FriendlyByteBuf buffer, T value) {
+  public void encode(RegistryFriendlyByteBuf buffer, T value) {
     buffer.writeResourceLocation(getKey(value));
   }
 
   /** Writes the value to the buffer */
-  public void encodeOptional(FriendlyByteBuf buffer, @Nullable T value) {
+  public void encodeOptional(RegistryFriendlyByteBuf buffer, @Nullable T value) {
     // if null, just write an empty string, that is not a valid resource location anyways and saves us a byte
     if (value != null) {
       buffer.writeUtf(getKey(value).toString());
@@ -74,19 +74,19 @@ public abstract class AbstractNamedComponentRegistry<T> implements ResourceLocat
 
   /** Parse the value from JSON */
   @Override
-  public T decode(FriendlyByteBuf buffer, TypedMap context) {
+  public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return decodeInternal(buffer.readResourceLocation());
   }
 
   /** Parse the value from JSON */
   @Nullable
-  public T decodeOptional(FriendlyByteBuf buffer) {
+  public T decodeOptional(RegistryFriendlyByteBuf buffer) {
     // empty string is not a valid resource location, so its a nice value to use for null, saves us a byte
     String key = buffer.readUtf(Short.MAX_VALUE);
     if (key.isEmpty()) {
       return null;
     }
-    return decodeInternal(new ResourceLocation(key));
+    return decodeInternal(ResourceLocation.parse(key));
   }
 
 
@@ -115,12 +115,12 @@ public abstract class AbstractNamedComponentRegistry<T> implements ResourceLocat
 
     @Nullable
     @Override
-    public T decode(FriendlyByteBuf buffer, TypedMap context) {
+    public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return registry.decodeOptional(buffer);
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, P parent) {
+    public void encode(RegistryFriendlyByteBuf buffer, P parent) {
       registry.encodeOptional(buffer, getter.apply(parent));
     }
   }

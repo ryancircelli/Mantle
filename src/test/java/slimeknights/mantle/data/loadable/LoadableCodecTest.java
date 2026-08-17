@@ -16,7 +16,7 @@ import net.minecraft.nbt.LongTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.data.loadable.field.LoadableField;
@@ -69,7 +69,7 @@ class LoadableCodecTest extends LoadableTest {
     assertCodecRoundTrip(IntLoadable.ANY_FULL.codec(), 5);
     assertCodecRoundTrip(LongLoadable.ANY.codec(), 5_000_000_000L);
     assertCodecRoundTrip(StringLoadable.DEFAULT.codec(), "text");
-    assertCodecRoundTrip(Loadables.RESOURCE_LOCATION.codec(), new ResourceLocation("mantle", "test"));
+    assertCodecRoundTrip(Loadables.RESOURCE_LOCATION.codec(), ResourceLocation.fromNamespaceAndPath("mantle", "test"));
   }
 
   @Test
@@ -156,12 +156,12 @@ class LoadableCodecTest extends LoadableTest {
     }
 
     @Override
-    public String decode(FriendlyByteBuf buffer, TypedMap context) {
+    public String decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       throw new IllegalStateException("cannot decode");
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, String object) {
+    public void encode(RegistryFriendlyByteBuf buffer, String object) {
       throw new IllegalStateException("cannot encode");
     }
   }
@@ -235,7 +235,8 @@ class LoadableCodecTest extends LoadableTest {
   @Test
   void mapCodec_composesInsideADispatch() {
     // the shape a registry of implementations wants
-    Codec<Fields> fieldsCodec = FIELDS.mapCodec().codec();
+    // DFU 8 dispatches on a MapCodec rather than a Codec, which is the shape the loadable's map codec already has
+    MapCodec<Fields> fieldsCodec = FIELDS.mapCodec();
     Codec<Fields> dispatched = Codec.STRING.<Fields>partialDispatch(
       "type",
       fields -> DataResult.success("fields"),
