@@ -97,7 +97,7 @@ public abstract class InvertedFluid extends ForgeFlowingFluid {
         if (this.sourceNeighborCount(level, pos) >= 3) {
           this.spreadToSides(level, pos, fluid, block);
         }
-      } else if (fluid.isSource() || !this.isWaterHole(level, aboveFluid.getType(), pos, block, above, aboveBlock)) {
+      } else if (fluid.isSource() || !this.isCeilingHole(level, aboveFluid.getType(), pos, block, above, aboveBlock)) {
         this.spreadToSides(level, pos, fluid, block);
       }
     }
@@ -153,11 +153,11 @@ public abstract class InvertedFluid extends ForgeFlowingFluid {
         });
         BlockState sideBlock = state.getFirst();
         FluidState sideFluid = state.getSecond();
-        if (this.canPassThrough(level, this.getFlowing(), spreadPos, spreadBlock, horizontal, side, sideBlock, sideFluid)) {
+        if (this.canFluidPassThrough(level, this.getFlowing(), spreadPos, spreadBlock, horizontal, side, sideBlock, sideFluid)) {
           boolean isWaterHole = waterHoleCache.computeIfAbsent(key, k -> {
             BlockPos above = side.above();
             BlockState aboveState = level.getBlockState(above);
-            return this.isWaterHole(level, this.getFlowing(), side, sideBlock, above, aboveState);
+            return this.isCeilingHole(level, this.getFlowing(), side, sideBlock, above, aboveState);
           });
           if (isWaterHole) {
             return distance;
@@ -175,11 +175,24 @@ public abstract class InvertedFluid extends ForgeFlowingFluid {
     return minSlope;
   }
 
-  @Override
-  protected boolean isWaterHole(BlockGetter level, Fluid fluid, BlockPos pos, BlockState block, BlockPos spreadPos, BlockState spreadBlock) {
+  /**
+   * Inverted counterpart of {@link net.minecraft.world.level.material.FlowingFluid}'s {@code isWaterHole}: checks whether the fluid can rise into the space above.
+   * Kept local rather than overriding the vanilla method, as optimization mods overwrite that method as private, which makes it non-virtual and silently skips our override.
+   */
+  private boolean isCeilingHole(BlockGetter level, Fluid fluid, BlockPos pos, BlockState block, BlockPos spreadPos, BlockState spreadBlock) {
     // recreation swapping downs for ups
     return this.canPassThroughWall(Direction.UP, level, pos, block, spreadPos, spreadBlock)
       && (spreadBlock.getFluidState().getType().isSame(this) || this.canHoldFluid(level, spreadPos, spreadBlock, fluid));
+  }
+
+  /**
+   * Recreation of {@link net.minecraft.world.level.material.FlowingFluid}'s {@code canPassThrough}, which needs no inversion as the caller always passes the direction to test.
+   * Kept local for the same reason as {@link #isCeilingHole(BlockGetter, Fluid, BlockPos, BlockState, BlockPos, BlockState)}.
+   */
+  private boolean canFluidPassThrough(BlockGetter level, Fluid fluid, BlockPos pos, BlockState block, Direction direction, BlockPos spreadPos, BlockState spreadBlock, FluidState spreadFluid) {
+    return !this.isSourceBlockOfThisType(spreadFluid)
+      && this.canPassThroughWall(direction, level, pos, block, spreadPos, spreadBlock)
+      && this.canHoldFluid(level, spreadPos, spreadBlock, fluid);
   }
 
   @Override
@@ -199,11 +212,11 @@ public abstract class InvertedFluid extends ForgeFlowingFluid {
       BlockState sideBlock = pair.getFirst();
       FluidState sideFluid = pair.getSecond();
       FluidState newFluid = this.getNewLiquid(level, side, sideBlock);
-      if (this.canPassThrough(level, newFluid.getType(), pos, block, direction, side, sideBlock, sideFluid)) {
+      if (this.canFluidPassThrough(level, newFluid.getType(), pos, block, direction, side, sideBlock, sideFluid)) {
         BlockPos above = side.above();
         boolean isWaterHole = waterHoleCache.computeIfAbsent(key, (p_255612_) -> {
           BlockState aboveBlock = level.getBlockState(above);
-          return this.isWaterHole(level, this.getFlowing(), side, sideBlock, above, aboveBlock);
+          return this.isCeilingHole(level, this.getFlowing(), side, sideBlock, above, aboveBlock);
         });
         int distance = isWaterHole ? 0 : this.getSlopeDistance(level, side, 1, direction.getOpposite(), sideBlock, pos, stateCache, waterHoleCache);
         if (distance < minDistance) {
