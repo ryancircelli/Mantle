@@ -127,6 +127,9 @@ public class NBTKeyModel implements IUnbakedGeometry<NBTKeyModel> {
 
     @Override
     public BakedModel resolve(BakedModel model, ItemStack stack, @Nullable ClientLevel world, @Nullable LivingEntity livingEntity, int pSeed) {
+      // nbtKey is whatever key a model JSON names, not an entry this class owns: it may be a vanilla entry, another
+      // mod's key, or a key claimed elsewhere in Mantle. A DataKey can only be claimed once per name, and this model
+      // has to be able to read any name a pack author writes, so it stays on the raw tag rather than claiming one.
       CompoundTag nbt = stack.getTag();
       if (nbt != null && nbt.contains(nbtKey)) {
         return variants.getOrDefault(nbt.getString(nbtKey), model);
