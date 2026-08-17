@@ -19,12 +19,22 @@ public record CodecLoadable<T>(DynamicOps<Tag> ops, Codec<T> codec) implements L
 
   @Override
   public T convert(JsonElement element, String key, TypedMap context) {
-    return codec.parse(JsonOps.INSTANCE, element).getOrThrow(false, ErrorFactory.JSON_SYNTAX_ERROR);
+    return convert(JsonOps.INSTANCE, element, key, context);
+  }
+
+  @Override
+  public <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return codec.parse(ops, input).getOrThrow(false, ErrorFactory.JSON_SYNTAX_ERROR);
   }
 
   @Override
   public JsonElement serialize(T object) {
-    return codec.encodeStart(JsonOps.INSTANCE, object).getOrThrow(false, ErrorFactory.RUNTIME);
+    return serialize(JsonOps.INSTANCE, object);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, T object) {
+    return codec.encodeStart(ops, object).getOrThrow(false, ErrorFactory.RUNTIME);
   }
 
   @Override

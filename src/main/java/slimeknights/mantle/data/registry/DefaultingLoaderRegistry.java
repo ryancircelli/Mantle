@@ -4,7 +4,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
+import com.mojang.serialization.DynamicOps;
 import net.minecraft.network.FriendlyByteBuf;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.DefaultingField;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
@@ -60,6 +62,14 @@ public class DefaultingLoaderRegistry<T extends IHaveLoader> extends GenericLoad
       return defaultInstance;
     }
     return super.convert(element, key, context);
+  }
+
+  @Override
+  public <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    if (OpsHelper.isEmpty(ops, input)) {
+      return defaultInstance;
+    }
+    return super.convert(ops, input, key, context);
   }
 
   @Override

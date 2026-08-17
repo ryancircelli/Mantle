@@ -1,6 +1,9 @@
 package slimeknights.mantle.data.loadable.field;
 
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.LegacyLoadable;
@@ -35,8 +38,24 @@ public record LegacyField<T,P>(LoadableField<T,P> base, String fallback) impleme
   }
 
   @Override
+  public <O> T get(DynamicOps<O> ops, MapLike<O> map, String key, TypedMap context) {
+    // prioritize loading from the main key, but use the fallback if main is absent
+    if (map.get(fallback) != null && map.get(key) == null) {
+      Mantle.logger.warn("Using deprecated JSON key '{}'{}, switch to current name of '{}'", fallback, LegacyLoadable.whileParsing(context), key);
+      return base.get(ops, map, fallback, context);
+    }
+    // if the fallback is missing, we may still be missing main, up to the base field to figure out
+    return base.get(ops, map, key, context);
+  }
+
+  @Override
   public void serialize(P parent, JsonObject json) {
     base.serialize(parent, json);
+  }
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, P parent, RecordBuilder<O> builder) {
+    return base.serialize(ops, parent, builder);
   }
 
   @Override

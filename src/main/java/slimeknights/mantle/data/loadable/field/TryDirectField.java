@@ -2,10 +2,16 @@ package slimeknights.mantle.data.loadable.field;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -22,6 +28,46 @@ public record TryDirectField<T,P>(Loadable<T> loadable, String key, Function<P,T
     }
     // try reading from the current object, assumes the loadable supports JSON objects
     return loadable.convert(json, key, context);
+  }
+
+  @Override
+  public <O> T get(DynamicOps<O> ops, MapLike<O> map, String key, TypedMap context) {
+    // if we have the nested key, read from that
+    O value = map.get(key);
+    if (value != null) {
+      return loadable.convert(ops, value, key, context);
+    }
+    // try reading from the current object, assumes the loadable supports objects
+    return loadable.convert(ops, OpsHelper.toValue(ops, map), key, context);
+  }
+
+  /** Checks if the serialized object conflicts with a key we know about */
+  private <O> boolean hasConflict(DynamicOps<O> ops, MapLike<O> serialized) {
+    if (serialized.get(key) != null) {
+      return true;
+    }
+    // check additional conflicts passed into the field, for the sake of optional fields mostly
+    for (String conflict : conflicts) {
+      if (serialized.get(conflict) != null) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, P parent, RecordBuilder<O> builder) {
+    O element = loadable.serialize(ops, getter.apply(parent));
+    Optional<MapLike<O>> serialized = ops.getMap(element).result();
+    // unlike the gson variant we cannot see the keys already written by earlier fields, as a record builder is write
+    // only. Conflicts with the declared key and the passed conflicts are all we can check.
+    if (serialized.isPresent() && !hasConflict(ops, serialized.get())) {
+      for (Pair<O,O> entry : serialized.get().entries().toList()) {
+        builder = builder.add(entry.getFirst(), entry.getSecond());
+      }
+      return builder;
+    }
+    return builder.add(key, element);
   }
 
   /** Checks if the JSON has any conflicting keys */

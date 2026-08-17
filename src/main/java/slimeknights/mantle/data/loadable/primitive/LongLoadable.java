@@ -1,12 +1,13 @@
 package slimeknights.mantle.data.loadable.primitive;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
 import slimeknights.mantle.data.loadable.array.LongArrayLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -58,12 +59,22 @@ public class LongLoadable implements Loadable<Long> {
 
   @Override
   public Long convert(JsonElement element, String key, TypedMap context) {
-    return validate(GsonHelper.convertToLong(element, key), key);
+    return convert(JsonOps.INSTANCE, element, key, context);
+  }
+
+  @Override
+  public <O> Long convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return validate(OpsHelper.getNumber(ops, input, key).longValue(), key);
   }
 
   @Override
   public JsonElement serialize(Long value) {
-    return new JsonPrimitive(validate(value, "Value"));
+    return serialize(JsonOps.INSTANCE, value);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, Long value) {
+    return ops.createLong(validate(value, "Value"));
   }
 
 
@@ -129,8 +140,8 @@ public class LongLoadable implements Loadable<Long> {
     }
 
     @Override
-    public Long convert(JsonElement element, String key, TypedMap context) {
-      return parseString(GsonHelper.convertToString(element, key), key, context);
+    public <O> Long convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+      return parseString(OpsHelper.getString(ops, input, key), key, context);
     }
 
     @Override
@@ -139,8 +150,8 @@ public class LongLoadable implements Loadable<Long> {
     }
 
     @Override
-    public JsonElement serialize(Long value) {
-      return new JsonPrimitive(getString(value));
+    public <O> O serialize(DynamicOps<O> ops, Long value) {
+      return ops.createString(getString(value));
     }
   }
 }

@@ -1,7 +1,6 @@
 package slimeknights.mantle.data.loadable.array;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
+import com.mojang.serialization.DynamicOps;
 import it.unimi.dsi.fastutil.shorts.Short2ObjectFunction;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
@@ -10,6 +9,7 @@ import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
 
 /** Loadable for a short array */
@@ -20,28 +20,28 @@ public record ShortArrayLoadable<T extends Number>(Loadable<T> base, int minSize
   }
 
   @Override
-  public short[] convertCompact(JsonElement element, String key, TypedMap context) {
-    return new short[] { base.convert(element, key, context).shortValue() };
+  public <O> short[] convertCompact(DynamicOps<O> ops, O value, String key, TypedMap context) {
+    return new short[] { base.convert(ops, value, key, context).shortValue() };
   }
 
   @Override
-  public short[] convertArray(JsonArray array, String key, TypedMap context) {
-    short[] result = new short[array.size()];
+  public <O> short[] convertArray(DynamicOps<O> ops, List<O> list, String key, TypedMap context) {
+    short[] result = new short[list.size()];
     for (int i = 0; i < result.length; i++) {
-      result[i] = base.convert(array.get(i), key + '[' + i + ']', context).shortValue();
+      result[i] = base.convert(ops, list.get(i), key + '[' + i + ']', context).shortValue();
     }
     return result;
   }
 
   @Override
-  public JsonElement serializeFirst(short[] object) {
-    return base.serialize(mapper.get(object[0]));
+  public <O> O serializeFirst(DynamicOps<O> ops, short[] object) {
+    return base.serialize(ops, mapper.get(object[0]));
   }
 
   @Override
-  public void serializeAll(JsonArray array, short[] object) {
+  public <O> void serializeAll(DynamicOps<O> ops, List<O> list, short[] object) {
     for (short element : object) {
-      array.add(base.serialize(mapper.get(element)));
+      list.add(base.serialize(ops, mapper.get(element)));
     }
   }
 

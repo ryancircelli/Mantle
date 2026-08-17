@@ -1,12 +1,13 @@
 package slimeknights.mantle.data.loadable.primitive;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
 import slimeknights.mantle.data.loadable.array.ByteArrayLoadable;
 import slimeknights.mantle.data.loadable.array.IntArrayLoadable;
@@ -66,12 +67,22 @@ public class IntLoadable implements Loadable<Integer> {
 
   @Override
   public Integer convert(JsonElement element, String key, TypedMap context) {
-    return validate(GsonHelper.convertToInt(element, key), key);
+    return convert(JsonOps.INSTANCE, element, key, context);
+  }
+
+  @Override
+  public <O> Integer convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return validate(OpsHelper.getNumber(ops, input, key).intValue(), key);
   }
 
   @Override
   public JsonElement serialize(Integer value) {
-    return new JsonPrimitive(validate(value, "Value"));
+    return serialize(JsonOps.INSTANCE, value);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, Integer value) {
+    return ops.createInt(validate(value, "Value"));
   }
 
 
@@ -221,8 +232,8 @@ public class IntLoadable implements Loadable<Integer> {
     }
 
     @Override
-    public Integer convert(JsonElement element, String key, TypedMap context) {
-      return parseString(GsonHelper.convertToString(element, key), key, context);
+    public <O> Integer convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+      return parseString(OpsHelper.getString(ops, input, key), key, context);
     }
 
     @Override
@@ -231,8 +242,8 @@ public class IntLoadable implements Loadable<Integer> {
     }
 
     @Override
-    public JsonElement serialize(Integer value) {
-      return new JsonPrimitive(getString(value));
+    public <O> O serialize(DynamicOps<O> ops, Integer value) {
+      return ops.createString(getString(value));
     }
   }
 }

@@ -4,11 +4,15 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import lombok.Getter;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.gson.GenericRegisteredSerializer;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.RecordField;
 import slimeknights.mantle.data.loadable.mapping.ConditionalLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
@@ -16,6 +20,7 @@ import slimeknights.mantle.data.registry.GenericLoaderRegistry.IHaveLoader;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -91,8 +96,28 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoada
   }
 
   @Override
+  public <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    // first try object
+    Optional<MapLike<O>> map = ops.getMap(input).result();
+    if (map.isPresent()) {
+      return loaders.getIfPresent(ops, map.get(), "type", context).deserialize(ops, map.get(), context);
+    }
+    // try string if allowed
+    if (compact && ops.getStringValue(input).result().isPresent()) {
+      return loaders.convert(ops, input, "type", context).deserialize(ops, OpsHelper.emptyMap(), context);
+    }
+    // neither? failed to parse
+    throw new JsonSyntaxException("Invalid " + name + " JSON at " + key + ", must be a JSON object" + (compact ? " or a string" : ""));
+  }
+
+  @Override
   public T deserialize(JsonObject json, TypedMap context) {
     return loaders.getIfPresent(json, "type", context).deserialize(json, context);
+  }
+
+  @Override
+  public <O> T deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+    return loaders.getIfPresent(ops, map, "type", context).deserialize(ops, map, context);
   }
 
   /** Serializes the object to json, fighting generics */
@@ -120,6 +145,35 @@ public class GenericLoaderRegistry<T extends IHaveLoader> implements RecordLoada
   @Override
   public void serialize(T object, JsonObject json) {
     serialize(object.getLoader(), object, json);
+  }
+
+  /** Serializes the object into the builder, fighting generics */
+  @SuppressWarnings("unchecked")
+  private <L,O> RecordBuilder<O> serialize(RecordLoadable<L> loader, DynamicOps<O> ops, T src, RecordBuilder<O> builder) {
+    // unlike the gson variant we cannot verify the loader left the type key alone, a record builder is write only
+    ResourceLocation type = loaders.getKey((RecordLoadable<? extends T>)loader);
+    return loader.serialize(ops, (L)src, builder.add("type", ops.createString(type.toString())));
+  }
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, T object, RecordBuilder<O> builder) {
+    return serialize(object.getLoader(), ops, object, builder);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, T src) {
+    O result = RecordLoadable.super.serialize(ops, src);
+    // nothing to serialize? use type directly
+    if (compact) {
+      Optional<MapLike<O>> map = ops.getMap(result).result();
+      if (map.isPresent() && map.get().entries().count() == 1) {
+        O type = map.get().get("type");
+        if (type != null) {
+          return type;
+        }
+      }
+    }
+    return result;
   }
 
   /** Writes the object to the network, fighting generics */

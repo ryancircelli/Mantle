@@ -2,10 +2,14 @@ package slimeknights.mantle.data.loadable.mapping;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -52,11 +56,27 @@ public class CompactLoadable<T> implements Loadable<T> {
   }
 
   @Override
+  public <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    if (!OpsHelper.isMap(ops, input)) {
+      return compact.convert(ops, input, key, context);
+    }
+    return loadable.convert(ops, input, key, context);
+  }
+
+  @Override
   public JsonElement serialize(T object) {
     if (compactCondition.test(object)) {
       return compact.serialize(object);
     }
     return loadable.serialize(object);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, T object) {
+    if (compactCondition.test(object)) {
+      return compact.serialize(ops, object);
+    }
+    return loadable.serialize(ops, object);
   }
 
 
@@ -86,8 +106,18 @@ public class CompactLoadable<T> implements Loadable<T> {
     }
 
     @Override
+    public <O> T deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+      return loadable.deserialize(ops, map, context);
+    }
+
+    @Override
     public void serialize(T object, JsonObject json) {
       loadable.serialize(object, json);
+    }
+
+    @Override
+    public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, T object, RecordBuilder<O> builder) {
+      return loadable.serialize(ops, object, builder);
     }
 
     @Override
