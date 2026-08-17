@@ -6,11 +6,11 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 import slimeknights.mantle.data.loadable.IAmLoadable;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.Loadables;
@@ -175,15 +175,15 @@ public abstract class FluidIngredient implements IAmLoadable {
     return LOADABLE.convert(element, key);
   }
 
-  /** @deprecated use {@link #LOADABLE} with {@link Loadable#encode(FriendlyByteBuf, Object)} */
+  /** @deprecated use {@link #LOADABLE} with {@link Loadable#encode(RegistryFriendlyByteBuf, Object)} */
   @Deprecated(forRemoval = true)
-  public void write(FriendlyByteBuf buffer) {
+  public void write(RegistryFriendlyByteBuf buffer) {
     NETWORK.encode(buffer, this);
   }
 
-  /** @deprecated use {@link #LOADABLE} with {@link Loadable#decode(FriendlyByteBuf)}*/
+  /** @deprecated use {@link #LOADABLE} with {@link Loadable#decode(RegistryFriendlyByteBuf)}*/
   @Deprecated(forRemoval = true)
-  public static FluidIngredient read(FriendlyByteBuf buffer) {
+  public static FluidIngredient read(RegistryFriendlyByteBuf buffer) {
     return NETWORK.decode(buffer);
   }
 

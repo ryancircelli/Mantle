@@ -1,31 +1,22 @@
 package slimeknights.mantle.recipe.ingredient;
 
-import com.google.gson.JsonElement;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.alchemy.PotionUtils;
-import net.minecraft.world.item.alchemy.Potions;
-import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.level.ItemLike;
-import net.minecraftforge.common.crafting.IIngredientSerializer;
+import net.neoforged.neoforge.common.crafting.IngredientType;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
-import slimeknights.mantle.recipe.helper.LoadableIngredientSerializer;
+import slimeknights.mantle.recipe.MantleIngredients;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 /** Ingredient that shows all potion variants on the displayed item list */
 public class PotionDisplayIngredient extends ItemIngredient {
-  /** Ingredient serializer instance */
-  public static final LoadableIngredientSerializer<PotionDisplayIngredient> SERIALIZER = new LoadableIngredientSerializer<>(RecordLoadable.create(ItemsField.INSTANCE, TAG_FIELD, PotionDisplayIngredient::new));
-
-  /** last return of {@link Ingredient#getItems()} */
-  private ItemStack[] lastParentStacks = null;
-  /** cache for {@link #getItems()} */
-  private ItemStack[] displayStacks = null;
+  public static final RecordLoadable<PotionDisplayIngredient> LOADABLE = RecordLoadable.create(ITEMS_FIELD, TAG_FIELD, PotionDisplayIngredient::new);
 
   protected PotionDisplayIngredient(List<Item> items, @Nullable TagKey<Item> tag) {
     super(items, tag);
@@ -52,26 +43,13 @@ public class PotionDisplayIngredient extends ItemIngredient {
   }
 
   @Override
-  public ItemStack[] getItems() {
-    // if empty, means we want wildcard, show all potions on the stack
-    ItemStack[] parentStacks = super.getItems();
-    if (lastParentStacks != parentStacks) {
-      lastParentStacks = parentStacks;
-      displayStacks = BuiltInRegistries.POTION.stream()
-        .filter(pot -> pot != Potions.EMPTY)
-        .flatMap(pot -> Arrays.stream(parentStacks).map(item -> PotionUtils.setPotion(item.copy(), pot)))
-        .toArray(ItemStack[]::new);
-    }
-    return displayStacks;
+  public Stream<ItemStack> getItems() {
+    // show every potion on every matched stack, as the ingredient itself does not care which potion it is
+    return matchingItems().flatMap(item -> BuiltInRegistries.POTION.holders().map(potion -> PotionContents.createItemStack(item, potion)));
   }
 
   @Override
-  public IIngredientSerializer<? extends Ingredient> getSerializer() {
-    return SERIALIZER;
-  }
-
-  @Override
-  public JsonElement toJson() {
-    return SERIALIZER.serialize(this);
+  public IngredientType<?> getType() {
+    return MantleIngredients.POTION_DISPLAY.get();
   }
 }
