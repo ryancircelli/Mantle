@@ -13,7 +13,7 @@ import slimeknights.mantle.util.RetexturedHelper;
  * Use alongside {@link RetexturedBlock} and {@link slimeknights.mantle.item.RetexturedBlockItem}. See {@link DefaultRetexturedBlockEntity} for implementation.
  */
 public interface IRetexturedBlockEntity {
-  /* Gets the Forge tile data for the tile entity */
+  /* Gets the persistent data for the block entity */
   CompoundTag getPersistentData();
 
   /**

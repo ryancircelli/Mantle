@@ -23,7 +23,7 @@ public class MantleSignBlockEntity extends SignBlockEntity {
 
   @Override
   public BlockEntityType<?> getType() {
-    return MantleRegistrations.SIGN;
+    return MantleRegistrations.SIGN.get();
   }
 
   /**
