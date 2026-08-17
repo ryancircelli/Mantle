@@ -24,22 +24,19 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.client.event.ModelEvent.RegisterGeometryLoaders;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.client.gui.overlay.NamedGuiOverlay;
-import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.ModelEvent.RegisterGeometryLoaders;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.block.GaugeBlock;
 import slimeknights.mantle.client.book.BookLoader;
@@ -56,6 +53,7 @@ import slimeknights.mantle.client.render.FluidCuboid;
 import slimeknights.mantle.client.render.RenderItem;
 import slimeknights.mantle.command.client.MantleClientCommand;
 import slimeknights.mantle.datagen.MantleTags;
+import slimeknights.mantle.fluid.texture.ClientTextureFluidType;
 import slimeknights.mantle.fluid.texture.FluidTextureManager;
 import slimeknights.mantle.fluid.tooltip.FluidTooltipHandler;
 import slimeknights.mantle.registration.MantleRegistrations;
@@ -68,8 +66,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT, bus = Bus.MOD)
+/**
+ * Client event handlers. Deliberately carries no {@code bus} argument: NeoForge deprecated it and routes each listener
+ * by whether its event implements {@code IModBusEvent}, so the mod bus and game bus handlers below can share a class.
+ */
+@EventBusSubscriber(modid = Mantle.modId, value = Dist.CLIENT)
 public class ClientEvents {
+  /*
+   * Vanilla's attack indicator art moved out of the single gui/icons.png sheet and into the GUI sprite atlas, one
+   * sprite per element. Gui declares these ids privately, so they are repeated here rather than reached for.
+   */
+  private static final ResourceLocation CROSSHAIR_ATTACK_INDICATOR_BACKGROUND_SPRITE = ResourceLocation.withDefaultNamespace("hud/crosshair_attack_indicator_background");
+  private static final ResourceLocation CROSSHAIR_ATTACK_INDICATOR_PROGRESS_SPRITE = ResourceLocation.withDefaultNamespace("hud/crosshair_attack_indicator_progress");
+  private static final ResourceLocation HOTBAR_ATTACK_INDICATOR_BACKGROUND_SPRITE = ResourceLocation.withDefaultNamespace("hud/hotbar_attack_indicator_background");
+  private static final ResourceLocation HOTBAR_ATTACK_INDICATOR_PROGRESS_SPRITE = ResourceLocation.withDefaultNamespace("hud/hotbar_attack_indicator_progress");
+
   /** Called on construct to initiatlize things that need early entry */
   public static void onConstruct() {}
 
@@ -77,10 +88,10 @@ public class ClientEvents {
   @SubscribeEvent
   static void registerEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
     if (MantleRegistrations.SIGN != null) {
-      event.registerBlockEntityRenderer(MantleRegistrations.SIGN, SignRenderer::new);
+      event.registerBlockEntityRenderer(MantleRegistrations.SIGN.get(), SignRenderer::new);
     }
     if (MantleRegistrations.HANGING_SIGN != null) {
-      event.registerBlockEntityRenderer(MantleRegistrations.HANGING_SIGN, HangingSignRenderer::new);
+      event.registerBlockEntityRenderer(MantleRegistrations.HANGING_SIGN.get(), HangingSignRenderer::new);
     }
   }
 
@@ -109,25 +120,32 @@ public class ClientEvents {
   @SubscribeEvent
   static void registerModelLoaders(RegisterGeometryLoaders event) {
     // standard models - useful in resource packs for any model
-    event.register("connected", ConnectedModel.LOADER);
-    event.register("item_layer", MantleItemLayerModel.LOADER);
-    event.register("colored_block", ColoredBlockModel.LOADER);
-    event.register("fallback", FallbackModelLoader.INSTANCE);
+    event.register(Mantle.getResource("connected"), ConnectedModel.LOADER);
+    event.register(Mantle.getResource("item_layer"), MantleItemLayerModel.LOADER);
+    event.register(Mantle.getResource("colored_block"), ColoredBlockModel.LOADER);
+    event.register(Mantle.getResource("fallback"), FallbackModelLoader.INSTANCE);
 
     // NBT dynamic models - require specific data defined in the block/item to use
-    event.register("nbt_key", NBTKeyModel.LOADER);
-    event.register("retextured", RetexturedModel.LOADER);
+    event.register(Mantle.getResource("nbt_key"), NBTKeyModel.LOADER);
+    event.register(Mantle.getResource("retextured"), RetexturedModel.LOADER);
   }
 
   @SubscribeEvent
-  static void commonSetup(FMLCommonSetupEvent event) {
-    MinecraftForge.EVENT_BUS.register(new ExtraHeartRenderHandler());
-    MinecraftForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, RenderGuiOverlayEvent.Post.class, ClientEvents::renderOffhandAttackIndicator);
-    MinecraftForge.EVENT_BUS.addListener(EventPriority.NORMAL, false, RenderGuiOverlayEvent.Post.class, ClientEvents::renderGaugeTooltip);
+  static void registerGuiLayers(RegisterGuiLayersEvent event) {
+    ExtraHeartRenderHandler.registerGuiLayers(event);
   }
 
-  // registered with FORGE bus
-  private static void renderOffhandAttackIndicator(RenderGuiOverlayEvent.Post event) {
+  @SubscribeEvent
+  static void registerClientExtensions(RegisterClientExtensionsEvent event) {
+    ClientTextureFluidType.registerExtensions(event);
+  }
+
+  /**
+   * Draws the offhand cooldown as an attack indicator, after whichever vanilla layer the indicator style calls for.
+   * Registered on the game bus.
+   */
+  @SubscribeEvent
+  static void renderOffhandAttackIndicator(RenderGuiLayerEvent.Post event) {
     // must have a player, not be in spectator, and have the indicator enabled
     Minecraft minecraft = Minecraft.getInstance();
     Options settings = minecraft.options;
@@ -137,10 +155,10 @@ public class ClientEvents {
     }
 
     // only care about hotbar and crosshair
-    NamedGuiOverlay overlay = event.getOverlay();
+    ResourceLocation layer = event.getName();
     // will be true for hotbar, false for crosshair
-    boolean isHotbar = VanillaGuiOverlay.HOTBAR.type() == overlay;
-    if (!isHotbar && VanillaGuiOverlay.CROSSHAIR.type() != overlay) {
+    boolean isHotbar = VanillaGuiLayers.HOTBAR.equals(layer);
+    if (!isHotbar && !VanillaGuiLayers.CROSSHAIR.equals(layer)) {
       return;
     }
 
@@ -159,7 +177,8 @@ public class ClientEvents {
     switch (indicator) {
       case CROSSHAIR:
         if (!isHotbar && minecraft.options.getCameraType().isFirstPerson()) {
-          if (!settings.renderDebug || settings.hideGui || minecraft.player.isReducedDebugInfo() || settings.reducedDebugInfo().get()) {
+          // Options#renderDebug moved onto DebugScreenOverlay, which folds the hideGui check into showDebugScreen
+          if (!minecraft.getDebugOverlay().showDebugScreen() || minecraft.player.isReducedDebugInfo() || settings.reducedDebugInfo().get()) {
             // mostly cloned from vanilla attack indicator
             RenderSystem.enableBlend();
             RenderSystem.blendFuncSeparate(GlStateManager.SourceFactor.ONE_MINUS_DST_COLOR, GlStateManager.DestFactor.ONE_MINUS_SRC_COLOR, GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ZERO);
@@ -168,8 +187,8 @@ public class ClientEvents {
             int y = (scaledHeight / 2) - 14 + (2 * (scaledHeight % 2));
             int x = minecraft.getWindow().getGuiScaledWidth() / 2 - 8;
             int width = (int)(cooldown * 17.0F);
-            graphics.blit(Gui.GUI_ICONS_LOCATION, x, y, 36, 94, 16, 4);
-            graphics.blit(Gui.GUI_ICONS_LOCATION, x, y, 52, 94, width, 4);
+            graphics.blitSprite(CROSSHAIR_ATTACK_INDICATOR_BACKGROUND_SPRITE, x, y, 16, 4);
+            graphics.blitSprite(CROSSHAIR_ATTACK_INDICATOR_PROGRESS_SPRITE, 16, 4, 0, 0, x, y, width, 4);
             RenderSystem.defaultBlendFunc();
           }
         }
@@ -185,11 +204,12 @@ public class ClientEvents {
           } else {
             x = centerWidth + 91 + 6 + 32;
           }
-//          RenderSystem.setShaderTexture(0, GuiComponent.GUI_ICONS_LOCATION);
           int l1 = (int)(cooldown * 19.0F);
           RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-          graphics.blit(Gui.GUI_ICONS_LOCATION, x, y, 0, 94, 18, 18);
-          graphics.blit(Gui.GUI_ICONS_LOCATION, x, y + 18 - l1, 18, 112 - l1, 18, l1);
+          RenderSystem.enableBlend();
+          graphics.blitSprite(HOTBAR_ATTACK_INDICATOR_BACKGROUND_SPRITE, x, y, 18, 18);
+          graphics.blitSprite(HOTBAR_ATTACK_INDICATOR_PROGRESS_SPRITE, 18, 18, 0, 18 - l1, x, y + 18 - l1, 18, l1);
+          RenderSystem.disableBlend();
         }
         break;
     }
@@ -198,8 +218,9 @@ public class ClientEvents {
 
 
   /** Renders the tooltip when targeting the gauge block */
-  private static void renderGaugeTooltip(RenderGuiOverlayEvent.Post event) {
-    if (event.getOverlay() != VanillaGuiOverlay.CROSSHAIR.type()) {
+  @SubscribeEvent
+  static void renderGaugeTooltip(RenderGuiLayerEvent.Post event) {
+    if (!VanillaGuiLayers.CROSSHAIR.equals(event.getName())) {
       return;
     }
     // must not be in a screen, though chat is fine
