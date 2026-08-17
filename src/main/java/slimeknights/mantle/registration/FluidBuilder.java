@@ -6,14 +6,14 @@ import lombok.RequiredArgsConstructor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.LiquidBlock;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.fluids.FluidType;
-import net.minecraftforge.fluids.ForgeFlowingFluid;
+import net.neoforged.neoforge.fluids.BaseFlowingFluid;
+import net.neoforged.neoforge.fluids.FluidType;
 
 import javax.annotation.Nullable;
 import java.util.function.Supplier;
 
 /**
- * Fluid properties' builder class, since the Forge one requires too many suppliers that we do not have access to yet
+ * Fluid properties' builder class, since the NeoForge one requires too many suppliers that we do not have access to yet
  */
 @Getter
 @RequiredArgsConstructor(access = AccessLevel.PROTECTED)
@@ -81,13 +81,13 @@ public class FluidBuilder<T extends FluidBuilder<T>> {
   }
 
   /**
-   * Builds Forge fluid properties from this builder
+   * Builds NeoForge fluid properties from this builder
    * @param still    Still fluid supplier
    * @param flowing  Flowing supplier
-   * @return  Forge fluid properties
+   * @return  NeoForge fluid properties
    */
-  public ForgeFlowingFluid.Properties build(Supplier<? extends FluidType> type, Supplier<? extends Fluid> still, Supplier<? extends Fluid> flowing) {
-    return new ForgeFlowingFluid.Properties(type, still, flowing)
+  public BaseFlowingFluid.Properties build(Supplier<? extends FluidType> type, Supplier<? extends Fluid> still, Supplier<? extends Fluid> flowing) {
+    return new BaseFlowingFluid.Properties(type, still, flowing)
         .slopeFindDistance(this.slopeFindDistance)
         .levelDecreasePerBlock(this.levelDecreasePerBlock)
         .explosionResistance(this.explosionResistance)

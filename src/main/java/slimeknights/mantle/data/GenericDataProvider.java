@@ -17,7 +17,7 @@ import net.minecraft.data.PackOutput.Target;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.Mantle;
-import slimeknights.mantle.util.JsonHelper;
+import slimeknights.mantle.data.gson.MantleGson;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -46,11 +46,11 @@ public abstract class GenericDataProvider implements DataProvider {
   }
 
   public GenericDataProvider(PackOutput output, Target type, String folder) {
-    this(output, type, folder, JsonHelper.DEFAULT_GSON);
+    this(output, type, folder, MantleGson.DEFAULT);
   }
 
   public GenericDataProvider(DataGenerator generator, Target type, String folder) {
-    this(generator, type, folder, JsonHelper.DEFAULT_GSON);
+    this(generator, type, folder, MantleGson.DEFAULT);
   }
 
   /**
@@ -84,7 +84,12 @@ public abstract class GenericDataProvider implements DataProvider {
    * @param object     Object to save, will be converted using the passed codec
    */
   protected <T> CompletableFuture<?> saveJson(CachedOutput output, ResourceLocation location, Codec<T> codec, T object) {
-    return saveJson(output, location, codec.encodeStart(JsonOps.INSTANCE, object).getOrThrow(false, Mantle.logger::error));
+    // DFU 8 replaced getOrThrow(boolean, Consumer<String>) with getOrThrow(Function<String,E>), which returns the
+    // exception rather than logging alongside it; log here so the message still reaches the datagen output.
+    return saveJson(output, location, codec.encodeStart(JsonOps.INSTANCE, object).getOrThrow(message -> {
+      Mantle.logger.error(message);
+      return new IllegalStateException(message);
+    }));
   }
 
   /** Combines a stream of completable futures into a single completable future */
@@ -98,7 +103,9 @@ public abstract class GenericDataProvider implements DataProvider {
   }
 
   /** Recreation of {@link DataProvider#saveStable(CachedOutput, JsonElement, Path)} that allows swapping tke key comparator */
-  @SuppressWarnings("UnstableApiUsage")
+  // Hashing#sha1 is deprecated in newer Guava; vanilla's own DataProvider#saveStable still calls it, and the cache
+  // format is sha1, so this copy has to match rather than pick a different hash.
+  @SuppressWarnings({"UnstableApiUsage", "deprecation"})
   static CompletableFuture<?> saveStable(CachedOutput cache, JsonElement pJson, Path pPath, @Nullable Comparator<String> keyComparator) {
     return CompletableFuture.runAsync(() -> {
       try {

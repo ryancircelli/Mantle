@@ -1,69 +1,45 @@
 package slimeknights.mantle.util;
 
 import lombok.RequiredArgsConstructor;
-import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityManager;
-import net.minecraftforge.common.capabilities.CapabilityToken;
-import net.minecraftforge.common.capabilities.ICapabilityProvider;
-import net.minecraftforge.common.capabilities.RegisterCapabilitiesEvent;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.common.util.NonNullFunction;
-import net.minecraftforge.event.AttachCapabilitiesEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.neoforge.attachment.AttachmentType;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.network.MantleNetwork;
 import slimeknights.mantle.network.packet.SwingArmPacket;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import static slimeknights.mantle.util.LogicHelper.orElseNull;
-
 /**
- * Logic to handle offhand having its own cooldown
+ * Logic to handle offhand having its own cooldown.
+ * @apiNote  1.20 attached this to every player through Forge's {@code AttachCapabilitiesEvent}. NeoForge replaced
+ *           entity capabilities with data attachments, which are a better fit anyway: the tracker is per player
+ *           runtime state that was never serialized, so the attachment is registered without a codec and simply
+ *           defaults to a fresh instance the first time it is read.
  */
 @RequiredArgsConstructor
-public class OffhandCooldownTracker implements ICapabilityProvider {
+public class OffhandCooldownTracker {
   public static final ResourceLocation KEY = Mantle.getResource("offhand_cooldown");
-  /** @deprecated use {@link #get(Player)} */
-  @Deprecated(forRemoval = true)
-  public static final NonNullFunction<OffhandCooldownTracker,Float> COOLDOWN_TRACKER = OffhandCooldownTracker::getCooldown;
 
-  /**
-   * Capability instance for offhand cooldown
-   */
-  public static final Capability<OffhandCooldownTracker> CAPABILITY = CapabilityManager.get(new CapabilityToken<>() {});
+  /** Register for Mantle's attachment types */
+  private static final DeferredRegister<AttachmentType<?>> ATTACHMENTS = DeferredRegister.create(NeoForgeRegistries.Keys.ATTACHMENT_TYPES, Mantle.modId);
+  /** Attachment holding the offhand cooldown of a player, replacing 1.20's capability */
+  public static final DeferredHolder<AttachmentType<?>,AttachmentType<OffhandCooldownTracker>> ATTACHMENT =
+    ATTACHMENTS.register(KEY.getPath(), () -> AttachmentType.<OffhandCooldownTracker>builder(holder -> new OffhandCooldownTracker(holder instanceof Player player ? player : null)).build());
 
-  /** Registers the capability and subscribes to event listeners */
-  public static void init() {
-    MinecraftForge.EVENT_BUS.addGenericListener(Entity.class, OffhandCooldownTracker::attachCapability);
+  /** Registers the attachment type. Needs to be called during mod construction */
+  public static void init(IEventBus modBus) {
+    ATTACHMENTS.register(modBus);
   }
 
-  /** Registers the capability with the event bus */
-  public static void register(RegisterCapabilitiesEvent event) {
-    event.register(OffhandCooldownTracker.class);
-  }
-
-  /**
-   * Called to add the capability handler to all players
-   * @param event  Event
-   */
-  private static void attachCapability(AttachCapabilitiesEvent<Entity> event) {
-    Entity entity = event.getObject();
-    if (entity instanceof Player player) {
-      event.addCapability(KEY, new OffhandCooldownTracker(player));
-    }
-  }
-
-  /** Lazy optional of self for capability requirements */
-  private final LazyOptional<OffhandCooldownTracker> capabilityInstance = LazyOptional.of(() -> this);
   /** Player receiving cooldowns */
   @Nullable
   private final Player player;
@@ -74,12 +50,6 @@ public class OffhandCooldownTracker implements ICapabilityProvider {
 
   /** Enables the cooldown tracker if above 0. Intended to be set in equipment change events, not serialized */
   private int enabled = 0;
-
-  @Nonnull
-  @Override
-  public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
-    return cap == CAPABILITY ? this.capabilityInstance.cast() : LazyOptional.empty();
-  }
 
   /** Null safe way to get the player's ticks existed */
   private int getTicksExisted() {
@@ -141,10 +111,14 @@ public class OffhandCooldownTracker implements ICapabilityProvider {
 
   /* Helpers */
 
-  /** Gets the tracker instance for the target entity */
+  /**
+   * Gets the tracker instance for the target entity.
+   * @apiNote  never null now that this is a data attachment rather than a capability, but the nullable contract is
+   *           kept so existing call sites and their null checks stay correct.
+   */
   @Nullable
   public static OffhandCooldownTracker get(Player player) {
-    return orElseNull(player.getCapability(OffhandCooldownTracker.CAPABILITY));
+    return player.getData(ATTACHMENT);
   }
 
   /**
