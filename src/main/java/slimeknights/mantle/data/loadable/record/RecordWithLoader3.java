@@ -5,7 +5,8 @@ import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import com.mojang.datafixers.util.Function4;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.RecordField;
 import slimeknights.mantle.util.typed.TypedMap;
 
@@ -45,6 +46,7 @@ record RecordWithLoader3<A,B,C,R>(
 
   @Override
   public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, R object, RecordBuilder<O> builder) {
+    builder = OpsHelper.sharedBuilder(ops, builder);
     builder = fieldA.serialize(ops, object, builder);
     builder = fieldB.serialize(ops, object, builder);
     builder = fieldC.serialize(ops, object, builder);
@@ -52,7 +54,7 @@ record RecordWithLoader3<A,B,C,R>(
   }
 
   @Override
-  public R decode(FriendlyByteBuf buffer, TypedMap context) {
+  public R decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return constructor.apply(
       fieldA.decode(buffer, context),
       fieldB.decode(buffer, context),
@@ -62,7 +64,7 @@ record RecordWithLoader3<A,B,C,R>(
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, R object) {
+  public void encode(RegistryFriendlyByteBuf buffer, R object) {
     fieldA.encode(buffer, object);
     fieldB.encode(buffer, object);
     fieldC.encode(buffer, object);

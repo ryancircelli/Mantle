@@ -4,7 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
@@ -59,7 +59,7 @@ public record DoubleLoadable(double min, double max) implements Loadable<Double>
   }
 
   @Override
-  public Double decode(FriendlyByteBuf buffer, TypedMap context) {
+  public Double decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return buffer.readDouble();
   }
 
@@ -74,7 +74,7 @@ public record DoubleLoadable(double min, double max) implements Loadable<Double>
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, Double object) {
+  public void encode(RegistryFriendlyByteBuf buffer, Double object) {
     buffer.writeDouble(object);
   }
 

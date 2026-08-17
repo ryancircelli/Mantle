@@ -7,7 +7,7 @@ import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
@@ -65,12 +65,12 @@ public class MappedLoadable<F,T> implements Loadable<T> {
   }
 
   @Override
-  public T decode(FriendlyByteBuf buffer, TypedMap context) {
+  public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return from.apply(base.decode(buffer, context), ErrorFactory.DECODER_EXCEPTION);
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, T object) {
+  public void encode(RegistryFriendlyByteBuf buffer, T object) {
     base.encode(buffer, to.apply(object, ErrorFactory.ENCODER_EXCEPTION));
   }
 
@@ -103,7 +103,7 @@ public class MappedLoadable<F,T> implements Loadable<T> {
     }
 
     @Override
-    public T decode(FriendlyByteBuf buffer, TypedMap context) {
+    public T decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return from.apply(base.decode(buffer, context), ErrorFactory.DECODER_EXCEPTION);
     }
   }

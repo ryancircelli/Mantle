@@ -7,7 +7,9 @@ import com.mojang.serialization.MapLike;
 import com.mojang.serialization.RecordBuilder;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
+import slimeknights.mantle.util.typed.TypedMap;
 
+import javax.annotation.Nullable;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -26,15 +28,23 @@ public final class LoadableMapCodec<T> extends MapCodec<T> {
 
   private final RecordLoadable<T> loadable;
   /** Keys this codec promises to read and write, or null if unknown. See {@link RecordLoadable#mapCodec(String...)}. */
+  @Nullable
   private final List<String> keys;
+  /** Context handed to the loadable on decode. See {@link RecordLoadable#mapCodec(TypedMap)}. */
+  private final TypedMap context;
 
   public LoadableMapCodec(RecordLoadable<T> loadable) {
-    this(loadable, null);
+    this(loadable, null, TypedMap.EMPTY);
   }
 
-  public LoadableMapCodec(RecordLoadable<T> loadable, List<String> keys) {
+  public LoadableMapCodec(RecordLoadable<T> loadable, @Nullable List<String> keys) {
+    this(loadable, keys, TypedMap.EMPTY);
+  }
+
+  public LoadableMapCodec(RecordLoadable<T> loadable, @Nullable List<String> keys, TypedMap context) {
     this.loadable = loadable;
     this.keys = keys;
+    this.context = context;
   }
 
   /** {@return the loadable backing this codec} */
@@ -71,7 +81,7 @@ public final class LoadableMapCodec<T> extends MapCodec<T> {
       return DataResult.error(() -> NO_KEYS);
     }
     return ErrorFactory.catching(
-      () -> loadable.deserialize(ops, input),
+      () -> loadable.deserialize(ops, input, context),
       e -> Mantle.logger.warn("Unable to decode {}", loadable, e));
   }
 
@@ -80,11 +90,14 @@ public final class LoadableMapCodec<T> extends MapCodec<T> {
     if (cannotCompress(ops)) {
       return prefix.withErrorsFrom(DataResult.error(() -> NO_KEYS));
     }
+    // the loadable wants a builder its fields can read back, but a codec grouping several encoders hands each of them
+    // the same builder and expects that instance back, so the one we substitute has to be flushed before returning
+    RecordBuilder<O> shared = OpsHelper.sharedBuilder(ops, prefix);
     DataResult<RecordBuilder<O>> result = ErrorFactory.catching(
-      () -> loadable.serialize(ops, input, prefix),
+      () -> loadable.serialize(ops, input, shared),
       e -> Mantle.logger.warn("Unable to encode {}", loadable, e));
     // on failure the builder is left as we found it, carrying the error so the eventual build fails
-    return result.result().orElseGet(() -> prefix.withErrorsFrom(result));
+    return result.result().map(built -> OpsHelper.flush(built, prefix)).orElseGet(() -> prefix.withErrorsFrom(result));
   }
 
   @Override

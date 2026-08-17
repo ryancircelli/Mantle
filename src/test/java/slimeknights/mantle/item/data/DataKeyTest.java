@@ -13,7 +13,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DataKeyTest extends BaseMcTest {
   /** Namespace used by this class, kept apart from the other tests as a name may only be claimed once per JVM */
   private static ResourceLocation id(String path) {
-    return new ResourceLocation("mantle_test", "key_" + path);
+    return ResourceLocation.fromNamespaceAndPath("mantle_test", "key_" + path);
   }
 
   private static final DataKey<String> NAME = DataKey.of(id("name"), StringLoadable.DEFAULT);

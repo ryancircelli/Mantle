@@ -5,7 +5,7 @@ import com.google.gson.JsonSyntaxException;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.JsonOps;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
@@ -89,12 +89,12 @@ public class IntLoadable implements Loadable<Integer> {
   /* Networking */
 
   @Override
-  public Integer decode(FriendlyByteBuf buffer, TypedMap context) {
+  public Integer decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     return network.fromNetwork(buffer);
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, Integer object) {
+  public void encode(RegistryFriendlyByteBuf buffer, Integer object) {
     network.toNetwork(object, buffer);
   }
 
@@ -102,54 +102,54 @@ public class IntLoadable implements Loadable<Integer> {
   public enum IntNetwork {
     INT {
       @Override
-      int fromNetwork(FriendlyByteBuf buffer) {
+      int fromNetwork(RegistryFriendlyByteBuf buffer) {
         return buffer.readInt();
       }
 
       @Override
-      void toNetwork(int value, FriendlyByteBuf buffer) {
+      void toNetwork(int value, RegistryFriendlyByteBuf buffer) {
         buffer.writeInt(value);
       }
     },
     VAR_INT {
       @Override
-      int fromNetwork(FriendlyByteBuf buffer) {
+      int fromNetwork(RegistryFriendlyByteBuf buffer) {
         return buffer.readVarInt();
       }
 
       @Override
-      void toNetwork(int value, FriendlyByteBuf buffer) {
+      void toNetwork(int value, RegistryFriendlyByteBuf buffer) {
         buffer.writeVarInt(value);
       }
     },
     SHORT {
       @Override
-      int fromNetwork(FriendlyByteBuf buffer) {
+      int fromNetwork(RegistryFriendlyByteBuf buffer) {
         return buffer.readShort();
       }
 
       @Override
-      void toNetwork(int value, FriendlyByteBuf buffer) {
+      void toNetwork(int value, RegistryFriendlyByteBuf buffer) {
         buffer.writeShort(value);
       }
     },
     BYTE {
       @Override
-      int fromNetwork(FriendlyByteBuf buffer) {
+      int fromNetwork(RegistryFriendlyByteBuf buffer) {
         return buffer.readByte();
       }
 
       @Override
-      void toNetwork(int value, FriendlyByteBuf buffer) {
+      void toNetwork(int value, RegistryFriendlyByteBuf buffer) {
         buffer.writeByte(value);
       }
     };
 
     /** Reads the int from the network */
-    abstract int fromNetwork(FriendlyByteBuf buffer);
+    abstract int fromNetwork(RegistryFriendlyByteBuf buffer);
 
     /** Writes the int to the network */
-    abstract void toNetwork(int value, FriendlyByteBuf buffer);
+    abstract void toNetwork(int value, RegistryFriendlyByteBuf buffer);
 
     /** Recommended int network type based on the ranged */
     public static IntNetwork recommended(int min, int max) {

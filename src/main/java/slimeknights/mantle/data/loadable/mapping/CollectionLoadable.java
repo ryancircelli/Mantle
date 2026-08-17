@@ -2,7 +2,7 @@ package slimeknights.mantle.data.loadable.mapping;
 
 import com.mojang.serialization.DynamicOps;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
@@ -77,7 +77,7 @@ public abstract class CollectionLoadable<T,C extends Collection<T>> implements A
   }
 
   @Override
-  public C decode(FriendlyByteBuf buffer, TypedMap context) {
+  public C decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
     int max = buffer.readVarInt();
     Collection<T> builder = createBuilder(max);
     for (int i = 0; i < max; i++) {
@@ -87,7 +87,7 @@ public abstract class CollectionLoadable<T,C extends Collection<T>> implements A
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer, C collection) {
+  public void encode(RegistryFriendlyByteBuf buffer, C collection) {
     buffer.writeVarInt(collection.size());
     for (T element : collection) {
       base.encode(buffer, element);

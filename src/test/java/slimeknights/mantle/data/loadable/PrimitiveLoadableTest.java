@@ -91,7 +91,7 @@ class PrimitiveLoadableTest extends LoadableTest {
 
   @Test
   void resourceLocationLoadable_roundTrips() {
-    assertRoundTrip(Loadables.RESOURCE_LOCATION, new ResourceLocation("mantle", "test/value"));
+    assertRoundTrip(Loadables.RESOURCE_LOCATION, ResourceLocation.fromNamespaceAndPath("mantle", "test/value"));
   }
 
   @Test
