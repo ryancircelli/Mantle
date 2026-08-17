@@ -6,8 +6,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DynamicOps;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.world.item.Item;
@@ -16,8 +16,8 @@ import net.minecraft.world.level.ItemLike;
 import slimeknights.mantle.data.loadable.LoadableCodec;
 import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.OpsHelper;
+import slimeknights.mantle.data.loadable.common.DataComponentsLoadable;
 import slimeknights.mantle.data.loadable.common.ItemStackLoadable;
-import slimeknights.mantle.data.loadable.common.NBTLoadable;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.IntLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
@@ -110,13 +110,13 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
 
   /**
    * Creates a new output for the given tag
-   * @param tag   Tag
-   * @param count Stack count
-   * @param nbt   Stack NBT
+   * @param tag         Tag
+   * @param count       Stack count
+   * @param components  Components which differ from the item's defaults, {@code null} for none
    * @return Output
    */
-  public static ItemOutput fromTag(TagKey<Item> tag, int count, @Nullable CompoundTag nbt) {
-    return new OfTagPreference(tag, count, nbt);
+  public static ItemOutput fromTag(TagKey<Item> tag, int count, @Nullable DataComponentPatch components) {
+    return new OfTagPreference(tag, count, components);
   }
 
   /**
@@ -142,8 +142,8 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
    * Writes this output to the packet buffer
    * @param buffer  Packet buffer instance
    */
-  public void write(FriendlyByteBuf buffer) {
-    buffer.writeItem(get());
+  public void write(RegistryFriendlyByteBuf buffer) {
+    ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, get());
   }
 
   /**
@@ -151,8 +151,8 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
    * @param buffer  Buffer instance
    * @return  Item output
    */
-  public static ItemOutput read(FriendlyByteBuf buffer) {
-    return fromStack(buffer.readItem());
+  public static ItemOutput read(RegistryFriendlyByteBuf buffer) {
+    return fromStack(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
   }
 
   /** Class for an output that is just an item, simplifies NBT for serializing as vanilla forces NBT to be set for tools and forge goes through extra steps when NBT is set */
@@ -217,7 +217,7 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
     @Getter
     private final int count;
     @Nullable
-    private final CompoundTag nbt;
+    private final DataComponentPatch components;
     private ItemStack cachedResult = null;
 
     @Override
@@ -233,8 +233,8 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
           return ItemStack.EMPTY;
         }
         cachedResult = new ItemStack(preference.orElseThrow(), count);
-        if (nbt != null) {
-          cachedResult.setTag(nbt.copy());
+        if (components != null) {
+          cachedResult.applyComponents(components);
         }
       }
       return cachedResult;
@@ -249,8 +249,8 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
       if (writeCount) {
         json.addProperty("count", count);
       }
-      if (count > 0 && nbt != null) {
-        json.add("nbt", NBTLoadable.ALLOW_STRING.serialize(nbt));
+      if (count > 0 && components != null && !components.isEmpty()) {
+        json.add("components", DataComponentsLoadable.INSTANCE.serialize(components));
       }
       return json;
     }
@@ -291,7 +291,7 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
         if (readCount) {
           count = IntLoadable.FROM_ONE.getOrDefault(json, "count", 1, context);
         }
-        return fromTag(tag, count, NBTLoadable.ALLOW_STRING.getOrDefault(json, "nbt", null));
+        return fromTag(tag, count, DataComponentsLoadable.INSTANCE.getOrDefault(json, "components", null));
       }
       return fromStack(stack.deserialize(json, context));
     }
@@ -348,12 +348,12 @@ public abstract class ItemOutput implements Supplier<ItemStack> {
     }
 
     @Override
-    public ItemOutput decode(FriendlyByteBuf buffer, TypedMap context) {
+    public ItemOutput decode(RegistryFriendlyByteBuf buffer, TypedMap context) {
       return fromStack(stack.decode(buffer, context));
     }
 
     @Override
-    public void encode(FriendlyByteBuf buffer, ItemOutput object) {
+    public void encode(RegistryFriendlyByteBuf buffer, ItemOutput object) {
       stack.encode(buffer, object.get());
     }
 

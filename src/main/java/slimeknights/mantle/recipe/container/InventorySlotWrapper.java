@@ -5,7 +5,7 @@ import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Implementation of {@link ISingleStackContainer} to wrap another {@link IInventory}
+ * Implementation of {@link ISingleStackContainer} to wrap a single slot of a {@link Container}
  */
 @AllArgsConstructor
 public class InventorySlotWrapper implements ISingleStackContainer {

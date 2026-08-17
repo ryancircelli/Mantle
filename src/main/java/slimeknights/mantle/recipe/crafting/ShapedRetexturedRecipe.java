@@ -1,45 +1,49 @@
 package slimeknights.mantle.recipe.crafting;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
-import net.minecraft.core.NonNullList;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.GsonHelper;
-import net.minecraft.world.inventory.CraftingContainer;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.CraftingBookCategory;
+import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.ShapedRecipe;
+import net.minecraft.world.item.crafting.ShapedRecipePattern;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import slimeknights.mantle.Mantle;
 import slimeknights.mantle.recipe.MantleRecipes;
-import slimeknights.mantle.recipe.helper.LoggingRecipeSerializer;
-import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.RetexturedHelper;
 
-import javax.annotation.Nullable;
-import java.util.Map;
-
-/** Recipe which sets the texture for a {@link slimeknights.mantle.block.RetexturedBlock} based on an ingredient input. */
+/**
+ * Recipe which sets the texture for a {@link slimeknights.mantle.block.RetexturedBlock} based on an ingredient input.
+ * <p>
+ * The texture is named by a symbol from the recipe's own key. 1.20 also accepted an inline ingredient object under the
+ * same field, which warned "use key instead" on every parse; that form is gone, as the recipe cannot see its key map
+ * without asking for it and there is no reason left to texture from something that is not an input.
+ */
 // TODO 1.21: rework to be more like the ShapedMaterialsRecipe from Tinkers for more efficient network syncing
 @SuppressWarnings("WeakerAccess")
 public class ShapedRetexturedRecipe extends ShapedRecipe {
+  /** Symbol in the recipe's key naming {@link #texture}. Unset for a recipe read from the network. */
+  private final char textureKey;
   /** Ingredient used to determine the texture on the output */
   @Getter
   private final Ingredient texture;
   private final boolean matchAll;
 
   /** Creates a new recipe using the passed parameters */
-  protected ShapedRetexturedRecipe(ResourceLocation id, String group, CraftingBookCategory category, int width, int height, NonNullList<Ingredient> ingredients, ItemStack result, boolean showNotification, Ingredient texture, boolean matchAll) {
-    super(id, group, category, width, height, ingredients, result, showNotification);
+  protected ShapedRetexturedRecipe(String group, CraftingBookCategory category, ShapedRecipePattern pattern, ItemStack result, boolean showNotification,
+                                   char textureKey, Ingredient texture, boolean matchAll) {
+    super(group, category, pattern, result, showNotification);
+    this.textureKey = textureKey;
     this.texture = texture;
     this.matchAll = matchAll;
   }
@@ -50,8 +54,8 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
    * @param texture    Ingredient to use for the texture
    * @param matchAll   If true, all inputs must match for the recipe to match
    */
-  protected ShapedRetexturedRecipe(ShapedRecipe orig, Ingredient texture, boolean matchAll) {
-    this(orig.getId(), orig.getGroup(), orig.category(), orig.getWidth(), orig.getHeight(), orig.getIngredients(), orig.result, orig.showNotification(), texture, matchAll);
+  public ShapedRetexturedRecipe(ShapedRecipe orig, char textureKey, Ingredient texture, boolean matchAll) {
+    this(orig.getGroup(), orig.category(), orig.pattern, orig.result, orig.showNotification(), textureKey, texture, matchAll);
   }
 
   /**
@@ -59,16 +63,16 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
    * @param texture  Texture to use
    * @return  Output with texture. Will be blank if the input is not a block
    */
-  public ItemStack getResultItem(Item texture, RegistryAccess access) {
-    return RetexturedHelper.setTexture(getResultItem(access).copy(), Block.byItem(texture));
+  public ItemStack getResultItem(Item texture, HolderLookup.Provider registries) {
+    return RetexturedHelper.setTexture(getResultItem(registries).copy(), Block.byItem(texture));
   }
 
   @Override
-  public ItemStack assemble(CraftingContainer craftMatrix, RegistryAccess access) {
-    ItemStack result = super.assemble(craftMatrix, access);
+  public ItemStack assemble(CraftingInput input, HolderLookup.Provider registries) {
+    ItemStack result = super.assemble(input, registries);
     Block currentTexture = null;
-    for (int i = 0; i < craftMatrix.getContainerSize(); i++) {
-      ItemStack stack = craftMatrix.getItem(i);
+    for (int i = 0; i < input.size(); i++) {
+      ItemStack stack = input.getItem(i);
       if (!stack.isEmpty() && texture.test(stack)) {
         // fetch texture from the block if it has one
         Block block = RetexturedHelper.getTexture(stack);
@@ -109,55 +113,81 @@ public class ShapedRetexturedRecipe extends ShapedRecipe {
     return MantleRecipes.CRAFTING_SHAPED_RETEXTURED.get();
   }
 
-  public static class Serializer implements LoggingRecipeSerializer<ShapedRetexturedRecipe> {
-    @Override
-    public ShapedRetexturedRecipe fromJson(ResourceLocation recipeId, JsonObject json) {
-      String group = GsonHelper.getAsString(json, "group", "");
-      CraftingBookCategory category = CraftingBookCategory.CODEC.byName(GsonHelper.getAsString(json, "category", null), CraftingBookCategory.MISC);
-      Map<String, Ingredient> key = ShapedRecipe.keyFromJson(GsonHelper.getAsJsonObject(json, "key"));
-      String[] pattern = ShapedRecipe.shrink(ShapedRecipe.patternFromJson(GsonHelper.getAsJsonArray(json, "pattern")));
-      int width = pattern[0].length();
-      int height = pattern.length;
-      NonNullList<Ingredient> inputs = ShapedRecipe.dissolvePattern(pattern, key, width, height);
-      ItemStack result = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
-      boolean showNotification = GsonHelper.getAsBoolean(json, "show_notification", true);
+  public static class Serializer implements RecipeSerializer<ShapedRetexturedRecipe> {
+    /** Single character key naming an ingredient in the recipe's key, matching what the pattern itself accepts */
+    private static final Codec<Character> SYMBOL_CODEC = Codec.STRING.comapFlatMap(
+      string -> string.length() == 1
+                ? DataResult.success(string.charAt(0))
+                : DataResult.error(() -> "Invalid texture key: '" + string + "' is an invalid symbol (must be 1 character only)."),
+      String::valueOf);
 
-      // fetch the texture from the map if its a primitive
-      JsonElement textureElement = JsonHelper.getElement(json, "texture");
-      Ingredient texture;
-      if (textureElement.isJsonPrimitive()) {
-        String textureKey = textureElement.getAsString();
-        if (textureKey.length() != 1) {
-          throw new JsonSyntaxException("Invalid texture key: '" + textureKey + "' is an invalid symbol (must be 1 character only).");
-        }
-        texture = key.get(textureKey);
-        if (texture == null || texture == Ingredient.EMPTY) {
-          throw new JsonSyntaxException("Texture ingredient references symbol '" + textureKey + "' but it's not defined in the key");
-        }
-      } else {
-        // if it's an object or array, treat as an ingredient object
-        texture = CraftingHelper.getIngredient(textureElement, false);
-        Mantle.logger.warn("Using deprecated ingredient format on 'texture' for `mantle:crafting_shaped_retextured`. Use key instead.");
+    /** Intermediate form, needed as the recipe reads the pattern's key to resolve its texture but stores the resolved ingredient */
+    private record Raw(String group, CraftingBookCategory category, ShapedRecipePattern.Data pattern, ItemStack result, boolean showNotification, char texture, boolean matchAll) {}
+
+    private static final MapCodec<Raw> RAW_CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+      Codec.STRING.optionalFieldOf("group", "").forGetter(Raw::group),
+      CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(Raw::category),
+      ShapedRecipePattern.Data.MAP_CODEC.forGetter(Raw::pattern),
+      ItemStack.STRICT_CODEC.fieldOf("result").forGetter(Raw::result),
+      Codec.BOOL.optionalFieldOf("show_notification", Boolean.TRUE).forGetter(Raw::showNotification),
+      SYMBOL_CODEC.fieldOf("texture").forGetter(Raw::texture),
+      Codec.BOOL.optionalFieldOf("match_all", Boolean.FALSE).forGetter(Raw::matchAll)
+    ).apply(instance, Raw::new));
+
+    /**
+     * Encoder half of {@link #CODEC}.
+     * @apiNote  Reading needs the key map, which only {@link ShapedRecipePattern.Data} exposes, while writing needs the
+     *           packed pattern the recipe actually holds. The two halves therefore use different views of the same two
+     *           JSON keys; its apply function is never called, as this is only ever used to encode.
+     */
+    private static final MapCodec<ShapedRetexturedRecipe> ENCODER = RecordCodecBuilder.mapCodec(instance -> instance.group(
+      Codec.STRING.optionalFieldOf("group", "").forGetter(ShapedRecipe::getGroup),
+      CraftingBookCategory.CODEC.fieldOf("category").orElse(CraftingBookCategory.MISC).forGetter(ShapedRecipe::category),
+      ShapedRecipePattern.MAP_CODEC.forGetter(recipe -> recipe.pattern),
+      ItemStack.STRICT_CODEC.fieldOf("result").forGetter(recipe -> recipe.result),
+      Codec.BOOL.optionalFieldOf("show_notification", Boolean.TRUE).forGetter(ShapedRecipe::showNotification),
+      SYMBOL_CODEC.fieldOf("texture").forGetter(recipe -> recipe.textureKey),
+      Codec.BOOL.optionalFieldOf("match_all", Boolean.FALSE).forGetter(recipe -> recipe.matchAll)
+    ).apply(instance, (group, category, pattern, result, showNotification, texture, matchAll) -> {
+      throw new UnsupportedOperationException("Decode through CODEC, which reads the key map this cannot see");
+    }));
+
+    public static final MapCodec<ShapedRetexturedRecipe> CODEC = MapCodec.of(ENCODER, RAW_CODEC.flatMap(Serializer::unpack), () -> "ShapedRetexturedRecipe");
+
+    public static final StreamCodec<RegistryFriendlyByteBuf,ShapedRetexturedRecipe> STREAM_CODEC = StreamCodec.of(
+      (buffer, recipe) -> {
+        RecipeSerializer.SHAPED_RECIPE.streamCodec().encode(buffer, recipe);
+        Ingredient.CONTENTS_STREAM_CODEC.encode(buffer, recipe.texture);
+        ByteBufCodecs.BOOL.encode(buffer, recipe.matchAll);
+      },
+      buffer -> {
+        ShapedRecipe base = RecipeSerializer.SHAPED_RECIPE.streamCodec().decode(buffer);
+        return new ShapedRetexturedRecipe(base, '\0', Ingredient.CONTENTS_STREAM_CODEC.decode(buffer), ByteBufCodecs.BOOL.decode(buffer));
+      });
+
+    /** Resolves the texture symbol against the key and builds the pattern */
+    private static DataResult<ShapedRetexturedRecipe> unpack(Raw raw) {
+      Ingredient texture = raw.pattern().key().get(raw.texture());
+      if (texture == null) {
+        return DataResult.error(() -> "Texture ingredient references symbol '" + raw.texture() + "' but it's not defined in the key");
       }
-      boolean matchAll = false;
-      if (json.has("match_all")) {
-        matchAll = json.get("match_all").getAsBoolean();
+      ShapedRecipePattern pattern;
+      try {
+        pattern = ShapedRecipePattern.of(raw.pattern().key(), raw.pattern().pattern());
+      } catch (IllegalStateException e) {
+        return DataResult.error(e::getMessage);
       }
-      return new ShapedRetexturedRecipe(recipeId, group, category, width, height, inputs, result, showNotification, texture, matchAll);
+      return DataResult.success(new ShapedRetexturedRecipe(raw.group(), raw.category(), pattern, raw.result(), raw.showNotification(), raw.texture(), texture, raw.matchAll()));
     }
 
-    @Nullable
     @Override
-    public ShapedRetexturedRecipe fromNetworkSafe(ResourceLocation recipeId, FriendlyByteBuf buffer) {
-      ShapedRecipe recipe = SHAPED_RECIPE.fromNetwork(recipeId, buffer);
-      return recipe == null ? null : new ShapedRetexturedRecipe(recipe, Ingredient.fromNetwork(buffer), buffer.readBoolean());
+    public MapCodec<ShapedRetexturedRecipe> codec() {
+      return CODEC;
     }
 
     @Override
-    public void toNetworkSafe(FriendlyByteBuf buffer, ShapedRetexturedRecipe recipe) {
-      SHAPED_RECIPE.toNetwork(buffer, recipe);
-      recipe.texture.toNetwork(buffer);
-      buffer.writeBoolean(recipe.matchAll);
+    public StreamCodec<RegistryFriendlyByteBuf,ShapedRetexturedRecipe> streamCodec() {
+      return STREAM_CODEC;
     }
   }
 }
