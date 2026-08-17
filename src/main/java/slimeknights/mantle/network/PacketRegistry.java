@@ -12,14 +12,12 @@ import java.util.Map;
 /**
  * Set of packets registered to a channel, keyed by identity.
  * <p>
- * A channel's packets are indexed on the wire by the order they were registered, which means an ordering difference
- * between two builds is only discovered when a decoder reads the wrong packet at login. Giving each packet a
- * {@link ResourceLocation} makes that mistake visible earlier: a duplicate is a hard failure while the channel is being
+ * The identifier is the whole of a packet's identity: it is written to the wire as the payload type, so two builds
+ * agree on what a packet is as long as they agree on its name. A duplicate is a hard failure while the channel is being
  * built, and a channel can be listed and compared without connecting to anything.
  * <p>
- * <b>The identifier is not written to the wire.</b> The index this class hands back is still what a message carries, so
- * adding identifiers to an existing channel does not change a single byte, and reordering registrations is still a
- * protocol change.
+ * <b>Registration order is not the wire format.</b> A packet is identified by its payload identifier, so this class
+ * keeps insertion order only to make registration and any listing of a channel deterministic.
  */
 public class PacketRegistry {
   /** Suffix trimmed from a class name when deriving an identifier, as every packet class carries it */
@@ -27,35 +25,37 @@ public class PacketRegistry {
 
   /** Channel these packets belong to, used for derived identifiers and error messages */
   private final ResourceLocation channel;
-  /** Registrations in the order they were added, which is the order of their wire indexes */
+  /** Registrations in the order they were added */
   private final Map<ResourceLocation,PacketRegistration<?>> byId = new LinkedHashMap<>();
-  /** Identifier of each registered class, as a channel can only encode a class one way */
-  private final Map<Class<?>,ResourceLocation> byType = new HashMap<>();
+  /** Registration of each registered class, as a channel can only encode a class one way. Used when sending. */
+  private final Map<Class<?>,PacketRegistration<?>> byType = new HashMap<>();
 
   public PacketRegistry(ResourceLocation channel) {
     this.channel = channel;
   }
 
+  /** Gets the channel these packets belong to */
+  public ResourceLocation channel() {
+    return channel;
+  }
+
   /**
    * Adds a packet to this registry.
    * @param registration  Packet registration
-   * @return  Index of this packet within the channel, which is what identifies it on the wire
    * @throws IllegalArgumentException  If the identifier or the class is already registered
    */
-  public int register(PacketRegistration<?> registration) {
+  public void register(PacketRegistration<?> registration) {
     ResourceLocation id = registration.id();
     PacketRegistration<?> conflict = byId.get(id);
     if (conflict != null) {
       throw new IllegalArgumentException("Duplicate packet ID " + id + " on channel " + channel + ", already registered to " + conflict.type().getName());
     }
-    ResourceLocation existing = byType.get(registration.type());
+    PacketRegistration<?> existing = byType.get(registration.type());
     if (existing != null) {
-      throw new IllegalArgumentException("Duplicate packet class " + registration.type().getName() + " on channel " + channel + ", already registered as " + existing);
+      throw new IllegalArgumentException("Duplicate packet class " + registration.type().getName() + " on channel " + channel + ", already registered as " + existing.id());
     }
-    int index = byId.size();
     byId.put(id, registration);
-    byType.put(registration.type(), id);
-    return index;
+    byType.put(registration.type(), registration);
   }
 
   /**
@@ -66,6 +66,17 @@ public class PacketRegistry {
   @Nullable
   public PacketRegistration<?> get(ResourceLocation id) {
     return byId.get(id);
+  }
+
+  /**
+   * Gets the registration for the given packet class, which is how a packet handed to a sending helper finds its
+   * identity and encoder.
+   * @param clazz  Packet class
+   * @return  Registration, or null if the class was never registered
+   */
+  @Nullable
+  public PacketRegistration<?> get(Class<?> clazz) {
+    return byType.get(clazz);
   }
 
   /** Checks if the given identifier is registered */
@@ -98,7 +109,7 @@ public class PacketRegistry {
    * @return  Identifier for the class
    */
   public ResourceLocation deriveId(Class<?> clazz) {
-    return new ResourceLocation(channel.getNamespace(), defaultPath(clazz));
+    return ResourceLocation.fromNamespaceAndPath(channel.getNamespace(), defaultPath(clazz));
   }
 
   /**
