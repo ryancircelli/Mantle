@@ -11,6 +11,7 @@ import slimeknights.mantle.recipe.ingredient.EntityIngredient;
 import javax.annotation.Nullable;
 
 /** Handler for working with entity types as ingredients */
+@SuppressWarnings("removal")  // getUniqueId is still the abstract method JEI 19 requires; getUid is a default wrapper around it, not a replacement
 public class EntityIngredientHelper implements IIngredientHelper<EntityIngredient.EntityInput> {
   @Override
   public IIngredientType<EntityIngredient.EntityInput> getIngredientType() {
