@@ -14,6 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * ({@value BookHelper#BOOK_COMPOUND} &rarr; {@value BookHelper#BOOK_DATA_COMPOUND} &rarr; {@value BookHelper#NBT_CURRENT_PAGE}),
  * so a book saved by an older Mantle still opens to the right page and a book saved by this class still opens on an
  * older Mantle.
+ * <p>
+ * That compound lives inside {@code minecraft:custom_data} rather than on the stack itself, so the assertions
+ * reach it through {@link BaseMcTest}'s custom data helpers. The nesting they check is unchanged.
  */
 class BookHelperTest extends BaseMcTest {
   /** Builds the tag layout {@link BookHelper} wrote before it had a key */
@@ -36,7 +39,7 @@ class BookHelperTest extends BaseMcTest {
   @Test
   void getCurrentSavedPage_readsATagWrittenTheOldWay() {
     ItemStack stack = new ItemStack(Items.WRITTEN_BOOK);
-    stack.setTag(legacyTag("page_3"));
+    setCustomData(stack, legacyTag("page_3"));
     assertThat(BookHelper.getCurrentSavedPage(stack)).isEqualTo("page_3");
   }
 
@@ -61,7 +64,7 @@ class BookHelperTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.WRITTEN_BOOK);
     CompoundTag root = new CompoundTag();
     root.put("mantle", new CompoundTag());
-    stack.setTag(root);
+    setCustomData(stack, root);
     assertThat(BookHelper.getCurrentSavedPage(stack)).isEmpty();
   }
 
@@ -70,7 +73,7 @@ class BookHelperTest extends BaseMcTest {
     ItemStack stack = new ItemStack(Items.WRITTEN_BOOK);
     BookHelper.writeSavedPageToBook(stack, "page_5");
 
-    assertThat(stack.getTag()).isEqualTo(legacyTag("page_5"));
+    assertThat(getCustomData(stack)).isEqualTo(legacyTag("page_5"));
   }
 
   @Test
@@ -85,17 +88,17 @@ class BookHelperTest extends BaseMcTest {
     // an empty saved page is not the same as no saved page at all, unlike most keys the empty string is meaningful
     ItemStack stack = new ItemStack(Items.WRITTEN_BOOK);
     BookHelper.writeSavedPageToBook(stack, "");
-    assertThat(stack.getTag()).isEqualTo(legacyTag(""));
-    assertThat(stack.getTag().getCompound("mantle").getCompound("book").get("current_page")).isEqualTo(StringTag.valueOf(""));
+    assertThat(getCustomData(stack)).isEqualTo(legacyTag(""));
+    assertThat(getCustomData(stack).getCompound("mantle").getCompound("book").get("current_page")).isEqualTo(StringTag.valueOf(""));
   }
 
   @Test
   void writeSavedPageToBook_keepsUnrelatedEntries() {
     ItemStack stack = new ItemStack(Items.WRITTEN_BOOK);
-    stack.getOrCreateTag().putString("other_mod:their_key", "value");
+    getOrCreateCustomData(stack).putString("other_mod:their_key", "value");
 
     BookHelper.writeSavedPageToBook(stack, "page_1");
-    assertThat(stack.getTag().getString("other_mod:their_key")).isEqualTo("value");
+    assertThat(getCustomData(stack).getString("other_mod:their_key")).isEqualTo("value");
     assertThat(BookHelper.getCurrentSavedPage(stack)).isEqualTo("page_1");
   }
 }
