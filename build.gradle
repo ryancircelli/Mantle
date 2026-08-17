@@ -10,27 +10,27 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'net.minecraftforge.gradle' version '[6.0,6.0.37]'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
-    id 'io.freefair.lombok' version '8.6'
+    // ModDevGradle replaces ForgeGradle 6 + Librarian for the 1.21.1 / NeoForge port.
+    id 'net.neoforged.moddev' version '2.0.143'
+    id 'io.freefair.lombok' version '8.14.4'
 }
 
 repositories {
     mavenCentral()
     maven {
         // Our maven
-        name "Prog's Maven"
-        url 'https://dvs1.progwml6.com/files/maven'
+        name = "Prog's Maven"
+        url = 'https://dvs1.progwml6.com/files/maven'
+    }
+    maven {
+        // Parchment mappings
+        name = "ParchmentMC"
+        url = 'https://maven.parchmentmc.org'
     }
     maven {
         // JEI
         name = "Jared's maven"
-        url = "https://maven.blamejared.com/"
-    }
-    maven {
-        // for Yarn2MCP
-        name "yarn2mcp"
-        url "https://maven.tterrag.com/"
+        url = 'https://maven.blamejared.com/'
     }
     // If you have mod jar dependencies in ./libs, you can declare them as a repository like so:
     // flatDir {
@@ -42,7 +42,7 @@ group = 'slimeknights.mantle'
 base {
     archivesName = 'Mantle'
 }
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 // sets version to the slimeKnights version format
 task buildInfo {
@@ -86,64 +86,73 @@ sourceSets {
     }
 }
 
-minecraft {
-    mappings channel: 'parchment', version: "${parchment_version}-${minecraft_version}"
+neoForge {
+    version = neoforge_version
 
-    enableIdeaPrepareRuns = true
-    copyIdeResources = true
+    parchment {
+        minecraftVersion = parchment_minecraft_version
+        mappingsVersion = project.parchment_version
+    }
 
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+    // The access transformer is Mojang-named, so ModDevGradle's convention of picking up
+    // src/main/resources/META-INF/accesstransformer.cfg is left alone. validateAccessTransformers
+    // fails the build if any line in it stops resolving.
+    validateAccessTransformers = true
+
+    mods {
+        mantle {
+            sourceSet sourceSets.main
+        }
+    }
 
     runs {
-
         // applies to all the run configs below
         configureEach {
-            workingDirectory project.file('run')
-
-            // Recommended logging data for a userdev environment
-            // The markers can be added/remove as needed separated by commas.
-            // "SCAN": For mods scan.
-            // "REGISTRIES": For firing of registry events.
-            // "REGISTRYDUMP": For getting the contents of all registries.
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP,CORE'
-
-            // Recommended logging level for the console
-            // You can set various levels here.
+            gameDirectory = project.file('run')
+            // Recommended logging level for the console.
             // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
-            property 'forge.logging.console.level', 'debug'
-
-            mods {
-                mantle {
-                    source sourceSets.main
-                }
-            }
+            logLevel = org.slf4j.event.Level.DEBUG
         }
 
         client {
+            client()
         }
 
         server {
-            args '--nogui'
+            server()
+            programArgument '--nogui'
         }
 
         data {
-            args '--mod', 'mantle', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+            data()
+            programArguments.addAll(
+                    '--mod', 'mantle',
+                    '--all',
+                    '--output', file('src/generated/resources/').absolutePath,
+                    '--existing', file('src/main/resources/').absolutePath)
         }
+
+        gameTestServer {
+            type = 'gameTestServer'
+        }
+    }
+
+    // Puts a loaded Minecraft on the test classpath and bootstraps FML around JUnit, which is what lets the
+    // serialization tests call Bootstrap.bootStrap() and reach the real registries. testedMod is the mod whose
+    // classes the tests belong to, so the test source set is loaded as part of it rather than as a separate mod.
+    unitTest {
+        enable()
+        testedMod = mods.mantle
     }
 }
 
-configurations {
-    deployerJars
-}
-               
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
-
-    // compile against the JEI API but do not include it at runtime
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
-    compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
-    // at runtime, use the full JEI jar
-    runtimeOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge:${jei_version}")
+    // JEI: compile against the API only (both halves - the plugin interfaces are common, the
+    // registration/rendering interfaces this module actually implements are neoforge-specific),
+    // and pull the runnable mod jar in only for local testing via the client run.
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
@@ -166,12 +175,14 @@ tasks.named('processResources', ProcessResources).configure {
         'version': artifact_version,
         'loader_range': loader_range,
         'minecraft_range': minecraft_range,
-        'forge_range': forge_range
+        'neoforge_range': neoforge_range
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
-        expand replaceProperties + [project: project]
+    // No `project` in the binding: neither template references it, and reaching for
+    // Task.project at execution time is deprecated and configuration-cache hostile.
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties
     }
 }
 
@@ -189,8 +200,6 @@ tasks.named('jar', Jar).configure {
     }
 }
 
-jar.finalizedBy('reobfJar')
-
 java {
     withSourcesJar()
 }
@@ -200,7 +209,7 @@ sourcesJar {
     exclude 'data/**'
     exclude 'pack.png'
     exclude 'pack.mcmeta'
-    exclude 'META-INF/mods.toml'
+    exclude 'META-INF/neoforge.mods.toml'
 }
 
 artifacts {
