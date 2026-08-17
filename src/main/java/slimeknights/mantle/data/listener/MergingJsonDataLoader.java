@@ -11,6 +11,7 @@ import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.util.GsonHelper;
+import net.neoforged.neoforge.resource.ContextAwareReloadListener;
 import slimeknights.mantle.util.JsonHelper;
 
 import java.io.IOException;
@@ -23,11 +24,17 @@ import java.util.function.Function;
 
 /**
  * Alternative to {@link net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener} that merges all json into a single builder rather than taking the top most JSON.
+ * <p>
+ * Extends {@link ContextAwareReloadListener} so a subclass parsing a loadable that needs the datapack registries can
+ * reach them through {@code getRegistryLookup()}, which is the same thing 1.21 gives every
+ * {@link net.minecraft.server.packs.resources.SimplePreparableReloadListener}. It is only populated for a listener
+ * registered through {@code AddReloadListenerEvent}; a client resource pack listener gets
+ * {@link net.minecraft.core.RegistryAccess#EMPTY} instead.
  * @param <B>  Builder class
  */
 @RequiredArgsConstructor
 @Log4j2
-public abstract class MergingJsonDataLoader<B> implements ResourceManagerReloadListener {
+public abstract class MergingJsonDataLoader<B> extends ContextAwareReloadListener implements ResourceManagerReloadListener {
 
   @VisibleForTesting
   protected final Gson gson;

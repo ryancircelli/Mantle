@@ -7,9 +7,9 @@ import com.mojang.serialization.DynamicOps;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
-import slimeknights.mantle.util.JsonHelper;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import javax.annotation.Nullable;
@@ -58,7 +58,7 @@ public class FallbackPredicateRegistry<T,F> extends PredicateRegistry<T> {
     if (element.isJsonObject()) {
       return deserialize(element.getAsJsonObject(), context);
     } else if (compact && element.isJsonPrimitive()) {
-      ResourceLocation type = JsonHelper.convertToResourceLocation(element, "type");
+      ResourceLocation type = Loadables.RESOURCE_LOCATION.convert(element, "type");
       //  see if we have a primary loader, if so parse that
       RecordLoadable<? extends IJsonPredicate<T>> loader = loaders.getValue(type);
       if (loader != null) {
@@ -73,7 +73,8 @@ public class FallbackPredicateRegistry<T,F> extends PredicateRegistry<T> {
 
   @Override
   public IJsonPredicate<T> deserialize(JsonObject json, TypedMap context) {
-    ResourceLocation type = JsonHelper.getResourceLocation(json, "type");
+    // the loadable rather than JsonHelper#getResourceLocation, which its own javadoc recommends against
+    ResourceLocation type = Loadables.RESOURCE_LOCATION.getIfPresent(json, "type");
     //  see if we have a primary loader, if so parse that
     RecordLoadable<? extends IJsonPredicate<T>> loader = loaders.getValue(type);
     if (loader != null) {
