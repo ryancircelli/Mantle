@@ -13,16 +13,16 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
-import net.minecraftforge.common.ForgeMod;
-import net.minecraftforge.common.world.BiomeModifier;
+import net.neoforged.neoforge.common.NeoForgeMod;
+import net.neoforged.neoforge.common.world.BiomeModifier;
+import net.neoforged.neoforge.registries.NeoForgeRegistries;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.util.JsonHelper;
 
 import java.nio.file.Path;
-
-import static net.minecraftforge.registries.ForgeRegistries.Keys.BIOME_MODIFIERS;
 
 /**
  * Helpers to remove various non-recipe data.
@@ -30,7 +30,7 @@ import static net.minecraftforge.registries.ForgeRegistries.Keys.BIOME_MODIFIERS
  */
 public class RemoveDataCommand {
   /* Name is invalid */
-  private static final Dynamic2CommandExceptionType INVALID_REGISTRY = new Dynamic2CommandExceptionType((name, registry) -> Mantle.makeComponent("command", "key.wrong_registry", name, registry));
+  private static final Dynamic2CommandExceptionType INVALID_REGISTRY = new Dynamic2CommandExceptionType((name, registry) -> Mantle.makeComponent("command", "key.wrong_registry", String.valueOf(name), String.valueOf(registry)));
   // success
   /** Translation key for successfully removing structure sets */
   private static final String STRUCTURE_SET_SUCCESS = Mantle.makeDescriptionId("command", "remove_data.structure.success");
@@ -47,7 +47,7 @@ public class RemoveDataCommand {
         .then(Commands.argument("id", ResourceKeyArgument.key(Registries.STRUCTURE_SET))
           .executes(RemoveDataCommand::removeStructureSet)))
       .then(Commands.literal("biome_modifier")
-        .then(Commands.argument("id", ResourceKeyArgument.key(BIOME_MODIFIERS))
+        .then(Commands.argument("id", ResourceKeyArgument.key(NeoForgeRegistries.Keys.BIOME_MODIFIERS))
           .executes(RemoveDataCommand::removeBiomeModifier)));
   }
 
@@ -70,30 +70,36 @@ public class RemoveDataCommand {
     ResourceLocation setLocation = JsonHelper.wrap(id.location(), Registries.STRUCTURE_SET.location().getPath() + '/' , ".json");
 
     // determine the path for the resulting datapack
+    ServerLevel level = context.getSource().getLevel();
     Path pack = GeneratePackHelper.getDatapackPath(context.getSource().getServer());
     GeneratePackHelper.saveMcmeta(pack);
 
     // save the final JSON
     Path path = pack.resolve(PackType.SERVER_DATA.getDirectory()).resolve(setLocation.getNamespace() + '/' + setLocation.getPath());
-    if (!GeneratePackHelper.saveConditionRemove(path)) {
+    if (!GeneratePackHelper.saveConditionRemove(path, level.registryAccess())) {
       throw GeneratePackHelper.FAILED_SAVE.create(id);
     }
 
     // send success
     float time = (System.nanoTime() - startTime) / 1000000f;
-    context.getSource().sendSuccess(() -> Component.translatable(STRUCTURE_SET_SUCCESS, id.location(), time, GeneratePackHelper.getOutputComponent(pack)), true);
+    context.getSource().sendSuccess(() -> Component.translatable(STRUCTURE_SET_SUCCESS, id.location().toString(), time, GeneratePackHelper.getOutputComponent(pack)), true);
     return 1;
   }
 
-  /** Empties the given structure set */
+  /**
+   * Empties the given biome modifier.
+   * @apiNote  Biome modifiers are a datapack registry read by codec in 1.21, same as everywhere else in NeoForge; the "no-op"
+   *           value is {@link NeoForgeMod#NONE_BIOME_MODIFIER_TYPE} rather than a condition, so this writes the biome
+   *           modifier's own {@code type} field directly instead of {@link GeneratePackHelper#saveConditionRemove}.
+   */
   private static int removeBiomeModifier(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
     long startTime = System.nanoTime();
-    ResourceKey<BiomeModifier> id = getResourceKey(context, "id", BIOME_MODIFIERS);
+    ResourceKey<BiomeModifier> id = getResourceKey(context, "id", NeoForgeRegistries.Keys.BIOME_MODIFIERS);
 
     // start by fetching the existing structure set JSON
-    ResourceLocation modifierLocation = JsonHelper.wrap(id.location(), BIOME_MODIFIERS.location().getNamespace() + '/' + BIOME_MODIFIERS.location().getPath() + '/', ".json");
+    ResourceLocation modifierLocation = JsonHelper.wrap(id.location(), NeoForgeRegistries.Keys.BIOME_MODIFIERS.location().getNamespace() + '/' + NeoForgeRegistries.Keys.BIOME_MODIFIERS.location().getPath() + '/', ".json");
     JsonObject json = new JsonObject();
-    json.addProperty("type", ForgeMod.NONE_BIOME_MODIFIER_TYPE.getId().toString());
+    json.addProperty("type", NeoForgeMod.NONE_BIOME_MODIFIER_TYPE.getId().toString());
 
     // determine the path for the resulting datapack
     Path pack = GeneratePackHelper.getDatapackPath(context.getSource().getServer());
@@ -106,7 +112,7 @@ public class RemoveDataCommand {
 
     // send success
     float time = (System.nanoTime() - startTime) / 1000000f;
-    context.getSource().sendSuccess(() -> Component.translatable(BIOME_MODIFIER_SUCCESS, id.location(), time, GeneratePackHelper.getOutputComponent(pack)), true);
+    context.getSource().sendSuccess(() -> Component.translatable(BIOME_MODIFIER_SUCCESS, id.location().toString(), time, GeneratePackHelper.getOutputComponent(pack)), true);
     return 1;
   }
 }
