@@ -23,7 +23,7 @@ public class MantleHangingSignBlockEntity extends HangingSignBlockEntity {
 
   @Override
   public BlockEntityType<?> getType() {
-    return MantleRegistrations.HANGING_SIGN;
+    return MantleRegistrations.HANGING_SIGN.get();
   }
 
   /**

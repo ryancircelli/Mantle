@@ -1,7 +1,8 @@
 package slimeknights.mantle.loot;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
@@ -11,7 +12,6 @@ import slimeknights.mantle.data.loadable.primitive.StringLoadable;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,33 +20,34 @@ import java.util.Map;
 /**
  * Record holding a list of entries to inject into the given loot table
  */
-public record LootTableInjection(ResourceLocation name, List<LootPoolInjection> pools) {
+public record LootTableInjection(ResourceKey<LootTable> name, List<LootPoolInjection> pools) {
   public static final RecordLoadable<LootTableInjection> LOADABLE = RecordLoadable.create(
-    Loadables.RESOURCE_LOCATION.requiredField("name", LootTableInjection::name),
+    Loadables.resourceKey(Registries.LOOT_TABLE).requiredField("name", LootTableInjection::name),
     LootPoolInjection.LOADABLE.list(1).requiredField("pools", LootTableInjection::pools),
     LootTableInjection::new);
 
   /**
    * Record holding a list of entries to inject into the given pool
    */
-  public record LootPoolInjection(String name, LootPoolEntryContainer[] entries) {
+  public record LootPoolInjection(String name, List<LootPoolEntryContainer> entries) {
     public static final RecordLoadable<LootPoolInjection> LOADABLE = RecordLoadable.create(
       StringLoadable.DEFAULT.requiredField("name", LootPoolInjection::name),
-      Loadables.LOOT_ENTRY.list(1).requiredField("entries", pool -> List.of(pool.entries)),
+      Loadables.LOOT_ENTRY.list(1).requiredField("entries", LootPoolInjection::entries),
       LootPoolInjection::new);
 
-    public LootPoolInjection(String name, List<LootPoolEntryContainer> entries) {
-      this(name, entries.toArray(new LootPoolEntryContainer[0]));
-    }
-
-    /** Injects this into the given loot pool */
+    /**
+     * Injects this into the given loot pool
+     * @apiNote  {@link LootPool#entries} is a {@code List} as of 1.21 (an array pre-1.21), so this appends by
+     *           building a combined list rather than {@code Arrays.copyOf}/{@code System.arraycopy}.
+     */
     public void inject(LootTable table) {
       LootPool pool = table.getPool(name);
       //noinspection ConstantConditions method is annotated wrongly
       if (pool != null) {
-        int oldLength = pool.entries.length;
-        pool.entries = Arrays.copyOf(pool.entries, oldLength + entries.length);
-        System.arraycopy(entries, 0, pool.entries, oldLength, entries.length);
+        List<LootPoolEntryContainer> combined = new ArrayList<>(pool.entries.size() + entries.size());
+        combined.addAll(pool.entries);
+        combined.addAll(entries);
+        pool.entries = List.copyOf(combined);
       } else {
         Mantle.logger.warn("Failed to inject loot into {} pool {}", table.getLootTableId(), name);
       }
@@ -67,11 +68,12 @@ public record LootTableInjection(ResourceLocation name, List<LootPoolInjection> 
     /** Inserts the given entries into the pool */
     @CanIgnoreReturnValue
     public Builder addToPool(LootPoolInjection injection) {
-      return addToPool(injection.name, injection.entries);
+      pools.computeIfAbsent(injection.name, n -> new ArrayList<>()).addAll(injection.entries);
+      return this;
     }
 
     /** Builds the list of injections */
-    public LootTableInjection build(ResourceLocation name) {
+    public LootTableInjection build(ResourceKey<LootTable> name) {
       return new LootTableInjection(name, pools.entrySet().stream().map(entry -> new LootPoolInjection(entry.getKey(), List.copyOf(entry.getValue()))).toList());
     }
   }
