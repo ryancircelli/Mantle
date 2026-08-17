@@ -1,7 +1,7 @@
 package slimeknights.mantle.network.packet;
 
 import lombok.AllArgsConstructor;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.Mantle;
@@ -16,13 +16,13 @@ public class OpenNamedBookPacket implements IPacket.Threadsafe {
 
   private final ResourceLocation book;
 
-  public OpenNamedBookPacket(FriendlyByteBuf buffer) {
+  public OpenNamedBookPacket(RegistryFriendlyByteBuf buffer) {
     this.book = buffer.readResourceLocation();
   }
 
   @Override
-  public void encode(FriendlyByteBuf buf) {
-    buf.writeResourceLocation(book);
+  public void encode(RegistryFriendlyByteBuf buffer) {
+    buffer.writeResourceLocation(book);
   }
 
   @Override
@@ -35,6 +35,10 @@ public class OpenNamedBookPacket implements IPacket.Threadsafe {
     }
   }
 
+  /**
+   * Holds the client-only reference so this class loads on a dedicated server. The message itself belongs to
+   * {@link BookCommand}, which owns the {@code command.mantle.book_test.not_found} key and is the other sender of it.
+   */
   static class ClientOnly {
     static void errorStatus(ResourceLocation book) {
       BookCommand.bookNotFound(book);

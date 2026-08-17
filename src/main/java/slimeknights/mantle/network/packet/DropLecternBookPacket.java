@@ -2,7 +2,7 @@ package slimeknights.mantle.network.packet;
 
 import lombok.AllArgsConstructor;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -23,12 +23,12 @@ public class DropLecternBookPacket implements IPacket.Threadsafe {
 
   private final BlockPos pos;
 
-  public DropLecternBookPacket(FriendlyByteBuf buffer) {
+  public DropLecternBookPacket(RegistryFriendlyByteBuf buffer) {
     this.pos = buffer.readBlockPos();
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer) {
+  public void encode(RegistryFriendlyByteBuf buffer) {
     buffer.writeBlockPos(pos);
   }
 
