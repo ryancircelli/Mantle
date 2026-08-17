@@ -22,6 +22,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.model.data.ModelData;
 import net.minecraftforge.client.model.data.ModelProperty;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.item.data.DataEditor;
+import slimeknights.mantle.item.data.DataKey;
+import slimeknights.mantle.item.data.DataView;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -37,6 +41,12 @@ public final class RetexturedHelper {
   public static final String KEY_ID = Mantle.makeDescriptionId("block", "retextured.id");
   /** Tag name for texture blocks. Should not be used directly, use the utils to interact */
   public static final String TAG_TEXTURE = "texture";
+  /**
+   * Key for the texture block, stored under the bare name {@link #TAG_TEXTURE} rather than a namespaced one: this
+   * entry was written long before this key existed, and a namespaced name would rename it, losing the texture on
+   * every retextured block in every world already saved.
+   */
+  public static final DataKey<Block> TEXTURE = DataKey.ofLegacyName(TAG_TEXTURE, Loadables.BLOCK);
   /** Property for tile entities containing a texture block */
   public static final ModelProperty<Block> BLOCK_PROPERTY = new ModelProperty<>(block -> block != Blocks.AIR);
 
@@ -49,10 +59,7 @@ public final class RetexturedHelper {
    * @return  Name of the texture, or empty if no texture
    */
   public static String getTextureName(@Nullable CompoundTag nbt) {
-    if (nbt == null) {
-      return "";
-    }
-    return nbt.getString(TAG_TEXTURE);
+    return getTextureName(DataView.of(nbt).getOrDefault(TEXTURE, Blocks.AIR));
   }
 
   /**
@@ -61,7 +68,7 @@ public final class RetexturedHelper {
    * @return  Texture, or empty string if none
    */
   public static String getTextureName(ItemStack stack) {
-    return getTextureName(stack.getTag());
+    return getTextureName(DataView.of(stack).getOrDefault(TEXTURE, Blocks.AIR));
   }
 
   /**
@@ -100,7 +107,7 @@ public final class RetexturedHelper {
    * @return  Texture, or {@link Blocks#AIR} if none
    */
   public static Block getTexture(ItemStack stack) {
-    return getBlock(getTextureName(stack));
+    return DataView.of(stack).getOrDefault(TEXTURE, Blocks.AIR);
   }
 
 
@@ -110,6 +117,9 @@ public final class RetexturedHelper {
    * Sets the texture in an NBT instance
    * @param nbt      Tag instance
    * @param texture  Texture to set
+   * @apiNote  Left on raw NBT: {@link DataEditor} has no counterpart for a detached tag on purpose (committing needs
+   *           a stack to decide whether it should have a tag at all), and this overload is what block entities use
+   *           to store the texture on their own persistent data rather than on an item stack.
    */
   public static void setTexture(@Nullable CompoundTag nbt, String texture) {
     if (nbt != null) {
@@ -127,12 +137,7 @@ public final class RetexturedHelper {
    * @return The item stack with the proper NBT
    */
   public static ItemStack setTexture(ItemStack stack, String name) {
-    if (!name.isEmpty()) {
-      setTexture(stack.getOrCreateTag(), name);
-    } else if (stack.hasTag()) {
-      setTexture(stack.getTag(), name);
-    }
-    return stack;
+    return setTexture(stack, getBlock(name));
   }
 
   /**
@@ -142,10 +147,14 @@ public final class RetexturedHelper {
    * @return The item stack with the proper NBT
    */
   public static ItemStack setTexture(ItemStack stack, @Nullable Block block) {
+    DataEditor editor = DataEditor.edit();
     if (block == null || block == Blocks.AIR) {
-      return setTexture(stack, "");
+      // setting no texture means removing the entry, not writing air; see DataEditor#remove
+      editor.remove(TEXTURE);
+    } else {
+      editor.set(TEXTURE, block);
     }
-    return setTexture(stack, BuiltInRegistries.BLOCK.getKey(block).toString());
+    return editor.apply(stack);
   }
 
 

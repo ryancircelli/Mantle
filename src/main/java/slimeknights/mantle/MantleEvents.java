@@ -1,7 +1,5 @@
 package slimeknights.mantle;
 
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Inventory;
@@ -16,7 +14,11 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
+import slimeknights.mantle.data.loadable.primitive.IntLoadable;
 import slimeknights.mantle.datagen.MantleTags;
+import slimeknights.mantle.item.data.DataEditor;
+import slimeknights.mantle.item.data.DataKey;
+import slimeknights.mantle.item.data.DataView;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,6 +34,11 @@ public class MantleEvents {
    * May be used by dependencies mods in {@link LivingDeathEvent} to make items soulbound for other reasons.
    */
   public static final String SOULBOUND_SLOT = "mantle_soulbound";
+  /**
+   * Key for {@link #SOULBOUND_SLOT}, kept under its existing bare name as dependent mods already write it directly.
+   * Package private rather than private so its format can be pinned by a test alongside this class.
+   */
+  static final DataKey<Integer> SOULBOUND = DataKey.ofLegacyName(SOULBOUND_SLOT, IntLoadable.ANY_FULL);
 
   /** Called when the player dies to store the slot to return items into */
   @SubscribeEvent
@@ -46,7 +53,7 @@ public class MantleEvents {
       for (int i = 0; i < totalSize; i++) {
         ItemStack stack = inventory.getItem(i);
         if (!stack.isEmpty() && stack.is(MantleTags.Items.SOULBOUND)) {
-          stack.getOrCreateTag().putInt(SOULBOUND_SLOT, i);
+          DataEditor.edit().set(SOULBOUND, i).apply(stack);
         }
       }
     }
@@ -66,9 +73,8 @@ public class MantleEvents {
         ItemEntity itemEntity = iter.next();
         ItemStack stack = itemEntity.getItem();
         // find items with our soulbound tag set and move them back into the inventory, will move them over later
-        CompoundTag tag = stack.getTag();
-        if (tag != null && tag.contains(SOULBOUND_SLOT, Tag.TAG_ANY_NUMERIC)) {
-          int slot = tag.getInt(SOULBOUND_SLOT);
+        Integer slot = DataView.of(stack).get(SOULBOUND);
+        if (slot != null) {
           // return the tool to its requested slot if possible, remove from the drops
           if (inventory.getItem(slot).isEmpty()) {
             inventory.setItem(slot, stack);
@@ -88,13 +94,7 @@ public class MantleEvents {
           // last resort, somehow we just cannot put the stack anywhere, so drop it on the ground
           // this should never happen, but better to be safe
           // ditch the soulbound slot tag, to prevent item stacking issues
-          CompoundTag tag = stack.getTag();
-          if (tag != null) {
-            tag.remove(SOULBOUND_SLOT);
-            if (tag.isEmpty()) {
-              stack.setTag(null);
-            }
-          }
+          DataEditor.edit(stack).remove(SOULBOUND).apply(stack);
           drops.add(itemEntity);
         }
       }
@@ -121,20 +121,14 @@ public class MantleEvents {
     List<ItemStack> takenSlot = new ArrayList<>();
     for(int i = 0; i < size; i++) {
       ItemStack stack = originalInv.getItem(i);
-      if (!stack.isEmpty()) {
-        CompoundTag tag = stack.getTag();
-        if (tag != null && tag.contains(SOULBOUND_SLOT, Tag.TAG_ANY_NUMERIC)) {
-          if (cloneInv.getItem(i).isEmpty()) {
-            cloneInv.setItem(i, stack);
-          } else {
-            takenSlot.add(stack);
-          }
-          // remove the slot tag, clear the tag if needed
-          tag.remove(SOULBOUND_SLOT);
-          if (tag.isEmpty()) {
-            stack.setTag(null);
-          }
+      if (!stack.isEmpty() && DataView.of(stack).get(SOULBOUND) != null) {
+        if (cloneInv.getItem(i).isEmpty()) {
+          cloneInv.setItem(i, stack);
+        } else {
+          takenSlot.add(stack);
         }
+        // remove the slot tag, clear the tag if needed
+        DataEditor.edit(stack).remove(SOULBOUND).apply(stack);
       }
     }
 
