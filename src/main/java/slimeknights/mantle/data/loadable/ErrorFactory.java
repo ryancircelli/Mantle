@@ -67,9 +67,21 @@ public interface ErrorFactory extends Consumer<String> {
    *           are typically a {@link JsonSyntaxException}, implementations are free to throw anything unchecked.
    */
   static <T> DataResult<T> catching(Supplier<T> supplier) {
+    return catching(supplier, e -> {});
+  }
+
+  /**
+   * Same as {@link #catching(Supplier)} but hands the exception to the given consumer before discarding it.
+   * @param supplier  Supplier running the loadable logic
+   * @param onError   Consumer receiving the exception, typically to log it as a {@link DataResult} keeps just the message
+   * @param <T>  Type of the result
+   * @return  Result of the supplier, or an error result containing its message.
+   */
+  static <T> DataResult<T> catching(Supplier<T> supplier, Consumer<RuntimeException> onError) {
     try {
       return DataResult.success(supplier.get());
     } catch (RuntimeException e) {
+      onError.accept(e);
       // NPEs and the like have no message, so fall back to the type name to avoid a null error
       String message = e.getMessage();
       String error = message != null ? message : e.toString();
