@@ -12,6 +12,7 @@ import com.mojang.serialization.RecordBuilder;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -185,5 +186,98 @@ public class OpsHelper {
       builder = builder.add(entry.getKey(), fromJson(ops, entry.getValue()));
     }
     return builder;
+  }
+
+
+  /* Record builders */
+
+  /**
+   * Creates a builder for the fields of a record which keeps the fields written so far readable, as required by the
+   * serialization contract of {@link slimeknights.mantle.data.loadable.record.RecordLoadable}.
+   * @param ops  Ops representing the desired format
+   * @param <O>  Format of the builder
+   * @return  Builder collecting the fields of a record
+   */
+  public static <O> RecordBuilder<O> sharedBuilder(DynamicOps<O> ops) {
+    return new SharedRecordBuilder<>(ops, ops.mapBuilder());
+  }
+
+  /**
+   * Same as {@link #sharedBuilder(DynamicOps)} but continues an existing builder, notably the one handed to a record
+   * by a codec or by the record nesting it. Returns the builder untouched if it already shares its fields, so a record
+   * nested in another sees everything the parent wrote.
+   * @param ops      Ops representing the format of the builder
+   * @param builder  Builder to continue
+   * @param <O>      Format of the builder
+   * @return  Builder collecting the fields of a record, for chaining
+   */
+  public static <O> RecordBuilder<O> sharedBuilder(DynamicOps<O> ops, RecordBuilder<O> builder) {
+    if (builder instanceof SharedRecordBuilder) {
+      return builder;
+    }
+    return new SharedRecordBuilder<>(ops, builder);
+  }
+
+  /**
+   * Reads back a field already written into a record builder, the counterpart of looking up a key in the JSON object
+   * the gson path shares between fields.
+   * @param builder  Builder to read
+   * @param key      Key to look up
+   * @param <O>      Format of the builder
+   * @return  Value written for the key, or null if nothing wrote it or the builder does not share its fields
+   */
+  @Nullable
+  public static <O> O getWritten(RecordBuilder<O> builder, String key) {
+    if (builder instanceof SharedRecordBuilder) {
+      @SuppressWarnings("unchecked")  // safe, a shared builder which is a builder of this format is of this format
+      SharedRecordBuilder<O> shared = (SharedRecordBuilder<O>)builder;
+      return shared.get(key);
+    }
+    return null;
+  }
+
+  /**
+   * Hands the fields collected by a builder from {@link #sharedBuilder(DynamicOps, RecordBuilder)} back to the
+   * builder it was created around, undoing the wrap.
+   * <p>
+   * Needed wherever the wrap must not escape: a codec composing several encoders around one builder hands each of
+   * them the same instance and expects it back modified, so a builder standing in for it has to be resolved before
+   * returning. Returns the builder untouched if nothing was wrapped.
+   * @param builder  Builder to flush
+   * @param target   Builder the wrap was created around
+   * @param <O>      Format of the builder
+   * @return  Target builder containing the fields, for chaining
+   */
+  public static <O> RecordBuilder<O> flush(RecordBuilder<O> builder, RecordBuilder<O> target) {
+    if (builder != target && builder instanceof SharedRecordBuilder) {
+      @SuppressWarnings("unchecked")  // safe, a shared builder which is a builder of this format is of this format
+      SharedRecordBuilder<O> shared = (SharedRecordBuilder<O>)builder;
+      return shared.flush();
+    }
+    return builder;
+  }
+
+  /**
+   * Serializes a value into the passed record builder using a serializer written against gson, the bridge behind the
+   * default ops implementations on {@link Loadable} and
+   * {@link slimeknights.mantle.data.loadable.field.RecordField}.
+   * <p>
+   * If the builder shares the fields written so far, notably any builder from {@link #sharedBuilder(DynamicOps)}, the
+   * serializer receives them and any edit it makes is taken back, matching what the gson path would have given it.
+   * @param ops         Ops representing the format of the builder
+   * @param builder     Builder receiving the fields
+   * @param serializer  Serializer writing into a JSON object
+   * @param <O>         Format of the builder
+   * @return  Builder containing the fields, for chaining
+   */
+  public static <O> RecordBuilder<O> serializeJson(DynamicOps<O> ops, RecordBuilder<O> builder, Consumer<JsonObject> serializer) {
+    if (builder instanceof SharedRecordBuilder) {
+      @SuppressWarnings("unchecked")  // safe, a shared builder which is a builder of this format is of this format
+      SharedRecordBuilder<O> shared = (SharedRecordBuilder<O>)builder;
+      return shared.addJson(serializer);
+    }
+    JsonObject json = new JsonObject();
+    serializer.accept(json);
+    return addAll(ops, builder, json);
   }
 }
