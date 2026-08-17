@@ -16,11 +16,11 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.network.NetworkHooks;
 import slimeknights.mantle.block.entity.INameableMenuProvider;
 import slimeknights.mantle.inventory.BaseContainerMenu;
+import slimeknights.mantle.util.CapabilityHelper;
 
 import javax.annotation.Nullable;
 
@@ -103,7 +103,10 @@ public abstract class InventoryBlock extends Block implements EntityBlock {
     if (state.getBlock() != newState.getBlock()) {
       BlockEntity te = worldIn.getBlockEntity(pos);
       if (te != null) {
-        te.getCapability(ForgeCapabilities.ITEM_HANDLER).ifPresent(inventory -> dropInventoryItems(state, worldIn, pos, inventory));
+        IItemHandler inventory = CapabilityHelper.itemHandler(te, null);
+        if (inventory != null) {
+          dropInventoryItems(state, worldIn, pos, inventory);
+        }
         worldIn.updateNeighbourForOutputSignal(pos, this);
       }
     }
