@@ -1,11 +1,12 @@
 package slimeknights.mantle.data.loadable.primitive;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.array.ArrayLoadable;
 import slimeknights.mantle.data.loadable.array.DoubleArrayLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
@@ -49,7 +50,12 @@ public record DoubleLoadable(double min, double max) implements Loadable<Double>
 
   @Override
   public Double convert(JsonElement element, String key, TypedMap context) {
-    return validate(GsonHelper.convertToDouble(element, key), key);
+    return convert(JsonOps.INSTANCE, element, key, context);
+  }
+
+  @Override
+  public <O> Double convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return validate(OpsHelper.getNumber(ops, input, key).doubleValue(), key);
   }
 
   @Override
@@ -59,7 +65,12 @@ public record DoubleLoadable(double min, double max) implements Loadable<Double>
 
   @Override
   public JsonElement serialize(Double object) {
-    return new JsonPrimitive(validate(object, "Value"));
+    return serialize(JsonOps.INSTANCE, object);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, Double object) {
+    return ops.createDouble(validate(object, "Value"));
   }
 
   @Override

@@ -3,17 +3,21 @@ package slimeknights.mantle.data.loadable.common;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.GsonHelper;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.Property;
 import slimeknights.mantle.data.loadable.Loadables;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.record.RecordLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
-import java.util.Map.Entry;
 import java.util.Optional;
 
 /** Loadable reading block state properties from JSON */
@@ -38,11 +42,16 @@ public enum BlockStateLoadable implements RecordLoadable<BlockState> {
 
   @Override
   public BlockState convert(JsonElement element, String key, TypedMap context) {
-    // primitive means parse the block with default properties
-    if (element.isJsonPrimitive()) {
-      return Loadables.BLOCK.convert(element, key, context).defaultBlockState();
+    return convert(JsonOps.INSTANCE, element, key, context);
+  }
+
+  @Override
+  public <O> BlockState convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    // a string means parse the block with default properties
+    if (ops.getStringValue(input).result().isPresent()) {
+      return Loadables.BLOCK.convert(ops, input, key, context).defaultBlockState();
     }
-    return RecordLoadable.super.convert(element, key, context);
+    return RecordLoadable.super.convert(ops, input, key, context);
   }
 
   /**
@@ -64,17 +73,23 @@ public enum BlockStateLoadable implements RecordLoadable<BlockState> {
 
   @Override
   public BlockState deserialize(JsonObject json, TypedMap context) {
-    Block block = Loadables.BLOCK.getIfPresent(json, "block", context);
+    return deserialize(JsonOps.INSTANCE, OpsHelper.getMap(JsonOps.INSTANCE, json, "[root]"), context);
+  }
+
+  @Override
+  public <O> BlockState deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+    Block block = Loadables.BLOCK.getIfPresent(ops, map, "block", context);
     BlockState state = block.defaultBlockState();
-    if (json.has("properties")) {
+    O properties = map.get("properties");
+    if (properties != null) {
       StateDefinition<Block,BlockState> definition = block.getStateDefinition();
-      for (Entry<String,JsonElement> entry : GsonHelper.getAsJsonObject(json, "properties").entrySet()) {
-        String key = entry.getKey();
+      for (Pair<O,O> entry : OpsHelper.getMap(ops, properties, "properties").entries().toList()) {
+        String key = OpsHelper.getString(ops, entry.getFirst(), "properties");
         Property<?> property = definition.getProperty(key);
         if (property == null) {
           throw new JsonSyntaxException("Property " + key + " does not exist in block " + block);
         }
-        state = setValue(state, property, GsonHelper.convertToString(entry.getValue(), key));
+        state = setValue(state, property, OpsHelper.getString(ops, entry.getSecond(), key));
       }
     }
     return state;
@@ -82,11 +97,16 @@ public enum BlockStateLoadable implements RecordLoadable<BlockState> {
 
   @Override
   public JsonElement serialize(BlockState state) {
+    return serialize(JsonOps.INSTANCE, state);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, BlockState state) {
     Block block = state.getBlock();
     if (this == DIFFERENCE && state == block.defaultBlockState()) {
-      return Loadables.BLOCK.serialize(block);
+      return Loadables.BLOCK.serialize(ops, block);
     }
-    return RecordLoadable.super.serialize(state);
+    return RecordLoadable.super.serialize(ops, state);
   }
 
   /** Serializes the property if it differs in the default state */
@@ -104,6 +124,23 @@ public enum BlockStateLoadable implements RecordLoadable<BlockState> {
     if (properties.size() > 0) {
       json.add("properties", properties);
     }
+  }
+
+  @Override
+  public <O> RecordBuilder<O> serialize(DynamicOps<O> ops, BlockState state, RecordBuilder<O> builder) {
+    // properties are chosen by the gson variant, as the property values are strings in every format
+    JsonObject properties = new JsonObject();
+    Block block = state.getBlock();
+    BlockState defaultState = block.defaultBlockState();
+    for (Property<?> property : block.getStateDefinition().getProperties()) {
+      serializeProperty(state, property, defaultState, properties);
+    }
+    builder = builder.add("block", Loadables.BLOCK.serialize(ops, block));
+    if (properties.size() > 0) {
+      builder = builder.add("properties", ops.createMap(properties.entrySet().stream().map(
+        entry -> Pair.of(ops.createString(entry.getKey()), ops.createString(entry.getValue().getAsString())))));
+    }
+    return builder;
   }
 
   @Override

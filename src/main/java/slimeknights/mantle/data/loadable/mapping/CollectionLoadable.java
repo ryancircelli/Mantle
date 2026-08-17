@@ -1,7 +1,6 @@
 package slimeknights.mantle.data.loadable.mapping;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
+import com.mojang.serialization.DynamicOps;
 import lombok.RequiredArgsConstructor;
 import net.minecraft.network.FriendlyByteBuf;
 import slimeknights.mantle.data.loadable.ErrorFactory;
@@ -52,28 +51,28 @@ public abstract class CollectionLoadable<T,C extends Collection<T>> implements A
   }
 
   @Override
-  public C convertCompact(JsonElement element, String key, TypedMap context) {
-    return build(List.of(base.convert(element, key, context)));
+  public <O> C convertCompact(DynamicOps<O> ops, O value, String key, TypedMap context) {
+    return build(List.of(base.convert(ops, value, key, context)));
   }
 
   @Override
-  public C convertArray(JsonArray array, String key, TypedMap context) {
-    Collection<T> builder = createBuilder(array.size());
-    for (int i = 0; i < array.size(); i++) {
-      builder.add(base.convert(array.get(i), key + '[' + i + ']', context));
+  public <O> C convertArray(DynamicOps<O> ops, List<O> list, String key, TypedMap context) {
+    Collection<T> builder = createBuilder(list.size());
+    for (int i = 0; i < list.size(); i++) {
+      builder.add(base.convert(ops, list.get(i), key + '[' + i + ']', context));
     }
     return build(builder);
   }
 
   @Override
-  public JsonElement serializeFirst(C collection) {
-    return base.serialize(collection.iterator().next());
+  public <O> O serializeFirst(DynamicOps<O> ops, C collection) {
+    return base.serialize(ops, collection.iterator().next());
   }
 
   @Override
-  public void serializeAll(JsonArray array, C collection) {
+  public <O> void serializeAll(DynamicOps<O> ops, List<O> list, C collection) {
     for (T element : collection) {
-      array.add(base.serialize(element));
+      list.add(base.serialize(ops, element));
     }
   }
 

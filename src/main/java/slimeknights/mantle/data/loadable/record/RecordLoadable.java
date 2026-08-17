@@ -16,9 +16,13 @@ import com.mojang.datafixers.util.Function6;
 import com.mojang.datafixers.util.Function7;
 import com.mojang.datafixers.util.Function8;
 import com.mojang.datafixers.util.Function9;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.MapLike;
+import com.mojang.serialization.RecordBuilder;
 import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.ErrorFactory;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.DirectField;
 import slimeknights.mantle.data.loadable.field.RecordField;
 import slimeknights.mantle.data.loadable.mapping.CompactLoadable;
@@ -52,9 +56,41 @@ public interface RecordLoadable<T> extends Loadable<T> {
     return deserialize(json, TypedMap.EMPTY);
   }
 
+  /**
+   * Deserializes the object from a map of an arbitrary serialization format.
+   * @param ops      Ops representing the format of the map, notably {@link com.mojang.serialization.JsonOps} or {@link net.minecraft.nbt.NbtOps}.
+   * @param map      Map of fields to parse
+   * @param context  Additional parsing context, used notably by recipe serializers to store the ID and serializer.
+   * @param <O>      Format of the map
+   * @return  Parsed loadable value
+   * @throws RuntimeException  If unable to read the map, typically a {@link com.google.gson.JsonSyntaxException}. See {@link ErrorFactory}.
+   * @implNote  The default implementation converts the map into a {@link JsonObject} then parses that, see
+   *            {@link Loadable#convert(DynamicOps, Object, String, TypedMap)} for the caveats of that conversion.
+   */
+  default <O> T deserialize(DynamicOps<O> ops, MapLike<O> map, TypedMap context) {
+    return deserialize(OpsHelper.toJson(ops, map), context);
+  }
+
+  /** Same as {@link #deserialize(DynamicOps, MapLike, TypedMap)} but uses {@link TypedMap#EMPTY} as the context. */
+  default <O> T deserialize(DynamicOps<O> ops, MapLike<O> map) {
+    return deserialize(ops, map, TypedMap.EMPTY);
+  }
+
   @Override
   default T convert(JsonElement element, String key, TypedMap context) {
     return deserialize(GsonHelper.convertToJsonObject(element, key), context);
+  }
+
+  /**
+   * {@inheritDoc}
+   * @implNote  Coerces the value into a map then hands it to {@link #deserialize(DynamicOps, MapLike, TypedMap)},
+   *            mirroring {@link #convert(JsonElement, String, TypedMap)}. An implementation overriding the gson
+   *            variant to accept something other than an object, such as a compact primitive form, must override this
+   *            one to match or the two entry points will disagree.
+   */
+  @Override
+  default <O> T convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    return deserialize(ops, OpsHelper.getMap(ops, input, key), context);
   }
 
 
@@ -68,6 +104,34 @@ public interface RecordLoadable<T> extends Loadable<T> {
     JsonObject json = new JsonObject();
     serialize(object, json);
     return json;
+  }
+
+  /**
+   * {@inheritDoc}
+   * @implNote  Writes the fields into a fresh record builder, mirroring {@link #serialize(Object)}. An implementation
+   *            overriding the gson variant to write something other than an object, such as a compact primitive form,
+   *            must override this one to match or the two entry points will disagree.
+   */
+  @Override
+  default <O> O serialize(DynamicOps<O> ops, T object) {
+    return serialize(ops, object, ops.mapBuilder()).build(ops.empty()).getOrThrow(false, ErrorFactory.RUNTIME);
+  }
+
+  /**
+   * Writes this object to the passed record builder.
+   * @param ops      Ops representing the desired format, notably {@link com.mojang.serialization.JsonOps} or {@link net.minecraft.nbt.NbtOps}.
+   * @param object   Object to serialize
+   * @param builder  Builder receiving the fields of this object
+   * @param <O>      Format of the builder
+   * @return  Builder containing the fields, for chaining. Never assume the builder was modified in place, record builders are free to be immutable.
+   * @throws RuntimeException  If unable to serialize the object. See {@link ErrorFactory}.
+   * @implNote  The default implementation serializes to a {@link JsonObject} then copies that into the builder, see
+   *            {@link Loadable#serialize(DynamicOps, Object)} for the caveats of that conversion.
+   */
+  default <O> RecordBuilder<O> serialize(DynamicOps<O> ops, T object, RecordBuilder<O> builder) {
+    JsonObject json = new JsonObject();
+    serialize(object, json);
+    return OpsHelper.addAll(ops, builder, json);
   }
 
 

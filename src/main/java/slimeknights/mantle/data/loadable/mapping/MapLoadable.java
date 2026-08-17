@@ -1,16 +1,19 @@
 package slimeknights.mantle.data.loadable.mapping;
 
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.DynamicOps;
+import com.mojang.serialization.JsonOps;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.util.GsonHelper;
 import slimeknights.mantle.data.loadable.Loadable;
+import slimeknights.mantle.data.loadable.OpsHelper;
 import slimeknights.mantle.data.loadable.field.LoadableField;
 import slimeknights.mantle.data.loadable.primitive.StringLoadable;
 import slimeknights.mantle.util.typed.TypedMap;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
@@ -49,33 +52,39 @@ public class MapLoadable<K, V> implements Loadable<Map<K,V>> {
 
   @Override
   public Map<K,V> convert(JsonElement element, String key, TypedMap context) {
-    JsonObject json = GsonHelper.convertToJsonObject(element, key);
-    if (json.size() < minSize) {
+    return convert(JsonOps.INSTANCE, element, key, context);
+  }
+
+  @Override
+  public <O> Map<K,V> convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    List<Pair<O,O>> entries = OpsHelper.getMap(ops, input, key).entries().toList();
+    if (entries.size() < minSize) {
       throw new JsonSyntaxException(key + " must have at least " + minSize + " elements");
     }
-    Map<K,V> builder = createBuilder(json.size());
+    Map<K,V> builder = createBuilder(entries.size());
     String mapKey = key + "'s key";
-    for (Entry<String, JsonElement> entry : json.entrySet()) {
-      String entryKey = entry.getKey();
+    for (Pair<O,O> entry : entries) {
+      String entryKey = OpsHelper.getString(ops, entry.getFirst(), mapKey);
       builder.put(
         keyLoadable.parseString(entryKey, mapKey),
-        valueLoadable.convert(entry.getValue(), entryKey, context));
+        valueLoadable.convert(ops, entry.getSecond(), entryKey, context));
     }
     return build(builder);
   }
 
   @Override
   public JsonElement serialize(Map<K,V> map) {
+    return serialize(JsonOps.INSTANCE, map);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, Map<K,V> map) {
     if (map.size() < minSize) {
       throw new RuntimeException("Collection must have at least " + minSize + " elements");
     }
-    JsonObject json = new JsonObject();
-    for (Entry<K,V> entry : map.entrySet()) {
-      json.add(
-        keyLoadable.getString(entry.getKey()),
-        valueLoadable.serialize(entry.getValue()));
-    }
-    return json;
+    return ops.createMap(map.entrySet().stream().map(entry -> Pair.of(
+      ops.createString(keyLoadable.getString(entry.getKey())),
+      valueLoadable.serialize(ops, entry.getValue()))));
   }
 
   @Override
