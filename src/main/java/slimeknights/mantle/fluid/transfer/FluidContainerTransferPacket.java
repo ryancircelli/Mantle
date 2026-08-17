@@ -1,11 +1,11 @@
 package slimeknights.mantle.fluid.transfer;
 
 import lombok.RequiredArgsConstructor;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
-import net.minecraftforge.registries.ForgeRegistries;
 import slimeknights.mantle.Mantle;
+import slimeknights.mantle.data.loadable.Loadables;
 import slimeknights.mantle.network.packet.IPacket;
 import slimeknights.mantle.network.packet.PacketContext;
 
@@ -21,20 +21,20 @@ public class FluidContainerTransferPacket implements IPacket.Threadsafe {
 
   private final Set<Item> items;
 
-  public FluidContainerTransferPacket(FriendlyByteBuf buffer) {
+  public FluidContainerTransferPacket(RegistryFriendlyByteBuf buffer) {
     int size = buffer.readVarInt();
     List<Item> builder = new ArrayList<>(size);
     for (int i = 0; i < size; i++) {
-      builder.add(buffer.readRegistryIdUnsafe(ForgeRegistries.ITEMS));
+      builder.add(Loadables.ITEM.decode(buffer));
     }
     this.items = Set.copyOf(builder);
   }
 
   @Override
-  public void encode(FriendlyByteBuf buffer) {
+  public void encode(RegistryFriendlyByteBuf buffer) {
     buffer.writeVarInt(items.size());
     for (Item item : items) {
-      buffer.writeRegistryIdUnsafe(ForgeRegistries.ITEMS, item);
+      Loadables.ITEM.encode(buffer, item);
     }
   }
 
