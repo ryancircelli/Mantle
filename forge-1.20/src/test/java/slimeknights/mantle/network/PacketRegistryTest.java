@@ -70,8 +70,12 @@ class PacketRegistryTest {
   @Test
   void register_assignsIndexesInOrder() {
     PacketRegistry registry = new PacketRegistry(CHANNEL);
-    assertThat(registry.register(registration(new ResourceLocation("mantle", "first"), EmptyPacket.class))).isEqualTo(0);
-    assertThat(registry.register(registration(new ResourceLocation("mantle", "second"), OtherPacket.class))).isEqualTo(1);
+    // the shared registry no longer hands back a wire index; the size before a registration is that index, which is
+    // what the Forge transport passes to the channel. Asserting it here keeps the 1.20 wire order covered.
+    assertThat(registry.size()).isEqualTo(0);
+    registry.register(registration(new ResourceLocation("mantle", "first"), EmptyPacket.class));
+    assertThat(registry.size()).isEqualTo(1);
+    registry.register(registration(new ResourceLocation("mantle", "second"), OtherPacket.class));
     assertThat(registry.size()).isEqualTo(2);
   }
 

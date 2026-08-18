@@ -1,9 +1,11 @@
 package slimeknights.mantle.network;
 
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.network.packet.IPacket;
+import slimeknights.mantle.platform.neoforge.NeoForgePacketTransport;
 import slimeknights.mantle.network.packet.PacketContext;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -108,16 +110,17 @@ class PacketRegistryTest {
   }
 
 
-  /* Payload identity */
+  /* Payload identity, which now lives on the target's transport */
 
   @Test
   void payloadType_carriesTheDeclaredId() {
-    // the identifier a call site declares is the name the packet answers to on the wire, with nothing in between
+    // the identifier a call site declares is the name the packet answers to on the wire, with nothing in between.
+    // the payload type is no longer on the registration: it cannot be, because CustomPacketPayload has no 1.20.1
+    // spelling, so the NeoForge transport derives and holds it instead.
     ResourceLocation id = ResourceLocation.fromNamespaceAndPath("mantle", "packet");
-    PacketRegistration<EmptyPacket> registration = registrationOf(id, EmptyPacket.class);
-    assertThat(registration.payloadType().id()).isEqualTo(id);
-    assertThat(registration.id()).isEqualTo(id);
-    assertThat(registration.wrap(new EmptyPacket()).type()).isEqualTo(registration.payloadType());
+    NeoForgePacketTransport transport = new NeoForgePacketTransport(CHANNEL, "1");
+    transport.onPacketRegistered(registrationOf(id, EmptyPacket.class), 0);
+    assertThat(transport.type(EmptyPacket.class).id()).isEqualTo(id);
   }
 
 

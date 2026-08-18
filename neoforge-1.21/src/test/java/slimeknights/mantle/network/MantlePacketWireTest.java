@@ -2,6 +2,7 @@ package slimeknights.mantle.network;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
@@ -14,6 +15,7 @@ import slimeknights.mantle.network.packet.OpenLecternBookPacket;
 import slimeknights.mantle.network.packet.UpdateHeldPagePacket;
 import slimeknights.mantle.network.packet.UpdateInventoryPagePacket;
 import slimeknights.mantle.network.packet.UpdateLecternPagePacket;
+import slimeknights.mantle.platform.neoforge.NeoForgePacketTransport;
 import slimeknights.mantle.test.BaseMcTest;
 import slimeknights.mantle.test.LoadableTest;
 
@@ -42,7 +44,7 @@ class MantlePacketWireTest extends BaseMcTest {
     UpdateLecternPagePacket.class, DropLecternBookPacket.class);
 
   /** Snapshots the readable bytes of a buffer without consuming them */
-  private static byte[] readable(FriendlyByteBuf buffer) {
+  private static byte[] readable(RegistryFriendlyByteBuf buffer) {
     byte[] bytes = new byte[buffer.readableBytes()];
     buffer.getBytes(buffer.readerIndex(), bytes);
     return bytes;
@@ -53,15 +55,15 @@ class MantlePacketWireTest extends BaseMcTest {
    * @param decoder  Packet decoder
    * @param writer   Writes the wire form the decoder is expected to read
    */
-  private static void assertWireRoundTrip(Function<FriendlyByteBuf,? extends IPacket> decoder, Consumer<FriendlyByteBuf> writer) {
-    FriendlyByteBuf input = LoadableTest.buffer();
+  private static void assertWireRoundTrip(Function<FriendlyByteBuf,? extends IPacket> decoder, Consumer<RegistryFriendlyByteBuf> writer) {
+    RegistryFriendlyByteBuf input = LoadableTest.buffer();
     writer.accept(input);
     byte[] expected = readable(input);
 
     IPacket packet = decoder.apply(input);
     assertThat(input.readableBytes()).as("decoder left bytes unread").isZero();
 
-    FriendlyByteBuf output = LoadableTest.buffer();
+    RegistryFriendlyByteBuf output = LoadableTest.buffer();
     packet.encode(output);
     assertThat(readable(output)).isEqualTo(expected);
 
@@ -75,10 +77,12 @@ class MantlePacketWireTest extends BaseMcTest {
     Class<P> clazz = (Class<P>)packet.getClass();
     PacketRegistration<P> registration = new PacketRegistration<>(
       ResourceLocation.fromNamespaceAndPath("mantle", "test"), clazz, IPacket::encode, decoder, IPacket::handle, PacketDirection.SERVERBOUND);
-    StreamCodec<FriendlyByteBuf,PacketPayload<P>> codec = registration.codec();
+    NeoForgePacketTransport transport = new NeoForgePacketTransport(ResourceLocation.fromNamespaceAndPath("mantle", "test_channel"), "1");
+    transport.onPacketRegistered(registration, 0);
+    StreamCodec<RegistryFriendlyByteBuf,PacketPayload<P>> codec = transport.codec(registration);
 
-    FriendlyByteBuf buffer = LoadableTest.buffer();
-    codec.encode(buffer, registration.wrap(packet));
+    RegistryFriendlyByteBuf buffer = LoadableTest.buffer();
+    codec.encode(buffer, new PacketPayload<>(transport.type(clazz), clazz.cast(packet)));
     // the payload carries the packet's bytes and nothing else; the identifier is written by vanilla ahead of them
     assertThat(readable(buffer)).isEqualTo(expected);
     assertThat(codec.decode(buffer).packet()).isInstanceOf(clazz);

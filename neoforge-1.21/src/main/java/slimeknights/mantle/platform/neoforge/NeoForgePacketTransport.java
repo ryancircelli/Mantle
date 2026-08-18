@@ -76,9 +76,7 @@ public class NeoForgePacketTransport implements PacketTransport {
   /** Registers a single packet's payload, in its own method so the payload type parameter is inferred from it */
   private <P> void registerPayload(PayloadRegistrar registrar, PacketRegistration<P> registration) {
     CustomPacketPayload.Type<PacketPayload<P>> type = type(registration.type());
-    StreamCodec<RegistryFriendlyByteBuf,PacketPayload<P>> codec = StreamCodec.of(
-      (buffer, payload) -> registration.encoder().accept(payload.packet(), buffer),
-      buffer -> new PacketPayload<>(type, registration.decoder().apply(buffer)));
+    StreamCodec<RegistryFriendlyByteBuf,PacketPayload<P>> codec = codec(registration);
     // the registrar runs handlers on the main thread by default, so IPacket.Threadsafe's enqueueWork runs inline
     IPayloadHandler<PacketPayload<P>> handler = (payload, context) -> registration.handle(payload.packet(), new PayloadPacketContext(context));
     PacketDirection direction = registration.direction();
@@ -91,8 +89,31 @@ public class NeoForgePacketTransport implements PacketTransport {
     }
   }
 
+  /**
+   * Builds the codec the loader uses to move a packet's payload across the wire.
+   * <p>
+   * This lives here rather than on the shared registration because a stream codec over the registry-carrying buffer
+   * has no 1.20.1 spelling.
+   * @param registration  Registration to build a codec for
+   * @param <P>  Packet type
+   * @return  Codec for the packet's payload
+   */
+  public <P> StreamCodec<RegistryFriendlyByteBuf,PacketPayload<P>> codec(PacketRegistration<P> registration) {
+    CustomPacketPayload.Type<PacketPayload<P>> type = type(registration.type());
+    return StreamCodec.of(
+      (buffer, payload) -> registration.encoder().accept(payload.packet(), buffer),
+      buffer -> new PacketPayload<>(type, registration.decoder().apply(buffer)));
+  }
+
+  /**
+   * Gets the payload type a packet class was registered under.
+   * @param clazz  Packet class
+   * @param <P>  Packet type
+   * @return  Payload type
+   * @throws IllegalArgumentException  If the class was never registered to this channel
+   */
   @SuppressWarnings("unchecked")
-  private <P> CustomPacketPayload.Type<PacketPayload<P>> type(Class<P> clazz) {
+  public <P> CustomPacketPayload.Type<PacketPayload<P>> type(Class<P> clazz) {
     CustomPacketPayload.Type<?> type = types.get(clazz);
     if (type == null) {
       throw new IllegalArgumentException("Packet " + clazz.getName() + " is not registered to channel " + channel);

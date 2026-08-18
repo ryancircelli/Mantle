@@ -1,12 +1,14 @@
 package slimeknights.mantle.network;
 
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.network.packet.IPacket;
 import slimeknights.mantle.network.packet.PacketContext;
+import slimeknights.mantle.platform.neoforge.NeoForgePacketTransport;
 import slimeknights.mantle.test.BaseMcTest;
 import slimeknights.mantle.test.LoadableTest;
 
@@ -33,6 +35,14 @@ class NetworkWrapperTest extends BaseMcTest {
 
   private static NetworkWrapper wrapper() {
     return new NetworkWrapper(CHANNEL, "1");
+  }
+
+  /**
+   * The target half of a wrapper's channel. Reaching for it is what a caller has to do for anything the shared
+   * interface cannot name, which on this target is everything payload shaped.
+   */
+  private static NeoForgePacketTransport transport(NetworkWrapper network) {
+    return (NeoForgePacketTransport)network.getTransport();
   }
 
 
@@ -66,7 +76,7 @@ class NetworkWrapperTest extends BaseMcTest {
     network.registerPacket(id, EmptyPacket.class, buffer -> new EmptyPacket(), PacketDirection.CLIENTBOUND);
 
     EmptyPacket packet = new EmptyPacket();
-    CustomPacketPayload payload = network.toPayload(packet);
+    CustomPacketPayload payload = transport(network).toPayload(packet);
     assertThat(payload.type().id()).isEqualTo(id);
     assertThat(payload).isInstanceOf(PacketPayload.class);
     assertThat(((PacketPayload<?>)payload).packet()).isSameAs(packet);
@@ -76,7 +86,7 @@ class NetworkWrapperTest extends BaseMcTest {
   void toPayload_unregisteredPacketFails() {
     // sending a packet nobody registered used to be a silent no-op on the channel
     NetworkWrapper network = wrapper();
-    assertThatThrownBy(() -> network.toPayload(new EmptyPacket()))
+    assertThatThrownBy(() -> transport(network).toPayload(new EmptyPacket()))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessageContaining(EmptyPacket.class.getName())
       .hasMessageContaining(CHANNEL.toString());
@@ -87,7 +97,7 @@ class NetworkWrapperTest extends BaseMcTest {
     // a subclass is its own packet, and must not borrow its parent's registration to reach the wire
     NetworkWrapper network = wrapper();
     network.registerPacket(ResourceLocation.fromNamespaceAndPath("mantle", "parent"), EmptyPacket.class, buffer -> new EmptyPacket(), PacketDirection.CLIENTBOUND);
-    assertThatThrownBy(() -> network.toPayload(new OtherPacket()))
+    assertThatThrownBy(() -> transport(network).toPayload(new OtherPacket()))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessageContaining(OtherPacket.class.getName());
   }
@@ -104,17 +114,18 @@ class NetworkWrapperTest extends BaseMcTest {
         return new EmptyPacket();
       }, IPacket::handle, PacketDirection.CLIENTBOUND);
 
-    StreamCodec<FriendlyByteBuf,PacketPayload<EmptyPacket>> codec = registration.codec();
-    FriendlyByteBuf buffer = LoadableTest.buffer();
-    codec.encode(buffer, registration.wrap(new EmptyPacket()));
+    NeoForgePacketTransport transport = new NeoForgePacketTransport(CHANNEL, "1");
+    transport.onPacketRegistered(registration, 0);
+    StreamCodec<RegistryFriendlyByteBuf,PacketPayload<EmptyPacket>> codec = transport.codec(registration);
+    RegistryFriendlyByteBuf buffer = LoadableTest.buffer();
+    codec.encode(buffer, new PacketPayload<>(transport.type(EmptyPacket.class), new EmptyPacket()));
     PacketPayload<EmptyPacket> decoded = codec.decode(buffer);
     assertThat(buffer.readableBytes()).as("codec left bytes unread").isZero();
-    assertThat(decoded.type()).isEqualTo(registration.payloadType());
-    assertThat(decoded.registration()).isSameAs(registration);
+    assertThat(decoded.type()).isEqualTo(transport.type(EmptyPacket.class));
   }
 
   /*
-   * Not covered: NetworkWrapper#registerPayloads. The loader's payload registry is locked once mod loading finishes,
+   * Not covered: NeoForgePacketTransport#registerPayloads. The loader's payload registry is locked once mod loading finishes,
    * which a JUnit run has already done by the time the first test executes, so calling it here can only assert that
    * NeoForge refuses. The two pieces it feeds the registrar - the identity and the codec - are covered above.
    */

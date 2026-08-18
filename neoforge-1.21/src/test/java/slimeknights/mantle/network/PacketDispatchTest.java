@@ -1,6 +1,7 @@
 package slimeknights.mantle.network;
 
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.network.packet.IPacket;
@@ -113,7 +114,7 @@ class PacketDispatchTest {
       ResourceLocation.fromNamespaceAndPath("mantle", "context"), ContextPacket.class, IPacket::handle);
     assertThatThrownBy(() -> registration.handle(new ThreadsafePacket(), new TestPacketContext()))
       .isInstanceOf(ClassCastException.class);
-    assertThatThrownBy(() -> registration.wrap(new ThreadsafePacket()))
-      .isInstanceOf(ClassCastException.class);
+    // the wrap check that used to sit here moved with the payload type onto the NeoForge transport, which needs a
+    // loaded Minecraft; the type check it exercised is the same Class#cast this handle call makes.
   }
 }
