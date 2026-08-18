@@ -2,7 +2,6 @@ package slimeknights.mantle.network;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkDirection;
 import slimeknights.mantle.network.packet.PacketContext;
 
 import javax.annotation.Nullable;
@@ -14,7 +13,11 @@ import java.util.function.Function;
  * the logic that runs when it arrives.
  * <p>
  * Bundling these means a packet cannot be half registered. The {@link #id()} is what makes a registration checkable at
- * mod init; it is not written to the wire, see {@link PacketRegistry}.
+ * mod init, and on 1.21.1 it is also what the packet is called on the wire; see {@link PacketRegistry}.
+ * <p>
+ * The record carries no loader type, which is what lets it be shared. What it costs is that the payload type and
+ * stream codec 1.21.1 needs are derived by that target's transport from this record rather than stored on it, so the
+ * transport keeps a map of its own.
  * @param id         Unique identifier of this packet within its channel
  * @param type       Packet class, used to look up the encoder when sending
  * @param encoder    Writes a packet to the buffer
@@ -27,7 +30,7 @@ public record PacketRegistration<P>(ResourceLocation id, Class<P> type,
                                     BiConsumer<P,FriendlyByteBuf> encoder,
                                     Function<FriendlyByteBuf,P> decoder,
                                     BiConsumer<P,PacketContext> handler,
-                                    @Nullable NetworkDirection direction) {
+                                    @Nullable PacketDirection direction) {
   /**
    * Encodes the given packet, checking it against this registration's type.
    * @param packet  Packet to encode

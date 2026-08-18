@@ -1,6 +1,5 @@
 package slimeknights.mantle.network;
 
-import net.minecraft.network.protocol.PacketFlow;
 import slimeknights.mantle.Mantle;
 import slimeknights.mantle.fluid.transfer.FluidContainerTransferPacket;
 import slimeknights.mantle.network.packet.DropLecternBookPacket;
@@ -21,19 +20,19 @@ public class MantleNetwork {
   public static final NetworkWrapper INSTANCE = new NetworkWrapper(Mantle.getResource("network"), "3");
 
   /**
-   * Registers packets into this network. Safe to call from any setup event, as the channel is not built until
-   * {@link NetworkWrapper#registerPayloads} runs.
+   * Registers packets into this network. Safe to call from any setup event, as the payloads are not built until
+   * {@link slimeknights.mantle.platform.neoforge.NeoForgePacketTransport#registerPayloads} runs.
    */
   public static void registerPackets() {
     // each packet is identified on the wire by the ID passed here, so these calls may be reordered or made
     // conditionally; only renaming one is a protocol change
-    INSTANCE.registerPacket(OpenLecternBookPacket.ID, OpenLecternBookPacket.class, OpenLecternBookPacket::new, PacketFlow.CLIENTBOUND);
-    INSTANCE.registerPacket(UpdateHeldPagePacket.ID, UpdateHeldPagePacket.class, UpdateHeldPagePacket::new, PacketFlow.SERVERBOUND);
-    INSTANCE.registerPacket(UpdateInventoryPagePacket.ID, UpdateInventoryPagePacket.class, UpdateInventoryPagePacket::new, PacketFlow.SERVERBOUND);
-    INSTANCE.registerPacket(UpdateLecternPagePacket.ID, UpdateLecternPagePacket.class, UpdateLecternPagePacket::new, PacketFlow.SERVERBOUND);
-    INSTANCE.registerPacket(DropLecternBookPacket.ID, DropLecternBookPacket.class, DropLecternBookPacket::new, PacketFlow.SERVERBOUND);
-    INSTANCE.registerPacket(OpenNamedBookPacket.ID, OpenNamedBookPacket.class, OpenNamedBookPacket::new, PacketFlow.CLIENTBOUND);
-    INSTANCE.registerPacket(SwingArmPacket.ID, SwingArmPacket.class, SwingArmPacket::new, PacketFlow.CLIENTBOUND);
-    INSTANCE.registerPacket(FluidContainerTransferPacket.ID, FluidContainerTransferPacket.class, FluidContainerTransferPacket::new, PacketFlow.CLIENTBOUND);
+    INSTANCE.registerPacket(OpenLecternBookPacket.ID, OpenLecternBookPacket.class, OpenLecternBookPacket::new, PacketDirection.CLIENTBOUND);
+    INSTANCE.registerPacket(UpdateHeldPagePacket.ID, UpdateHeldPagePacket.class, UpdateHeldPagePacket::new, PacketDirection.SERVERBOUND);
+    INSTANCE.registerPacket(UpdateInventoryPagePacket.ID, UpdateInventoryPagePacket.class, UpdateInventoryPagePacket::new, PacketDirection.SERVERBOUND);
+    INSTANCE.registerPacket(UpdateLecternPagePacket.ID, UpdateLecternPagePacket.class, UpdateLecternPagePacket::new, PacketDirection.SERVERBOUND);
+    INSTANCE.registerPacket(DropLecternBookPacket.ID, DropLecternBookPacket.class, DropLecternBookPacket::new, PacketDirection.SERVERBOUND);
+    INSTANCE.registerPacket(OpenNamedBookPacket.ID, OpenNamedBookPacket.class, OpenNamedBookPacket::new, PacketDirection.CLIENTBOUND);
+    INSTANCE.registerPacket(SwingArmPacket.ID, SwingArmPacket.class, SwingArmPacket::new, PacketDirection.CLIENTBOUND);
+    INSTANCE.registerPacket(FluidContainerTransferPacket.ID, FluidContainerTransferPacket.class, FluidContainerTransferPacket::new, PacketDirection.CLIENTBOUND);
   }
 }

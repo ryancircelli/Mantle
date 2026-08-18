@@ -1,7 +1,6 @@
 package slimeknights.mantle.network;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.network.packet.IPacket;
@@ -20,7 +19,7 @@ class PacketDispatchTest {
     PacketContext received;
 
     @Override
-    public void encode(RegistryFriendlyByteBuf buffer) {}
+    public void encode(FriendlyByteBuf buffer) {}
 
     @Override
     public void handle(PacketContext context) {
@@ -34,7 +33,7 @@ class PacketDispatchTest {
     PacketContext received;
 
     @Override
-    public void encode(RegistryFriendlyByteBuf buffer) {}
+    public void encode(FriendlyByteBuf buffer) {}
 
     @Override
     public void handleThreadsafe(PacketContext context) {
@@ -43,7 +42,7 @@ class PacketDispatchTest {
   }
 
   private static <P> PacketRegistration<P> registrationOf(ResourceLocation id, Class<P> clazz, java.util.function.BiConsumer<P,PacketContext> handler) {
-    return new PacketRegistration<>(id, clazz, (packet, buffer) -> {}, buffer -> null, handler, PacketFlow.CLIENTBOUND);
+    return new PacketRegistration<>(id, clazz, (packet, buffer) -> {}, buffer -> null, handler, PacketDirection.CLIENTBOUND);
   }
 
 
@@ -71,9 +70,9 @@ class PacketDispatchTest {
 
   @Test
   void handle_readsTheContextProperties() {
-    TestPacketContext context = new TestPacketContext(null, PacketFlow.CLIENTBOUND);
+    TestPacketContext context = new TestPacketContext(null, PacketDirection.CLIENTBOUND);
     assertThat(context.getSender()).isNull();
-    assertThat(context.getDirection()).isEqualTo(PacketFlow.CLIENTBOUND);
+    assertThat(context.getDirection()).isEqualTo(PacketDirection.CLIENTBOUND);
   }
 
 

@@ -2,6 +2,7 @@ package slimeknights.mantle.network.packet;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkDirection;
+import slimeknights.mantle.network.PacketDirection;
 import net.minecraftforge.network.NetworkEvent;
 
 import javax.annotation.Nullable;
@@ -24,8 +25,8 @@ public record ForgePacketContext(NetworkEvent.Context context) implements Packet
   }
 
   @Override
-  public NetworkDirection getDirection() {
-    return context.getDirection();
+  public PacketDirection getDirection() {
+    return context.getDirection().getReceptionSide().isClient() ? PacketDirection.CLIENTBOUND : PacketDirection.SERVERBOUND;
   }
 
   /**

@@ -2,6 +2,7 @@ package slimeknights.mantle.network.packet;
 
 import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.network.protocol.PacketFlow;
+import slimeknights.mantle.network.PacketDirection;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -34,7 +35,7 @@ public record PayloadPacketContext(IPayloadContext context) implements PacketCon
   }
 
   @Override
-  public PacketFlow getDirection() {
-    return context.flow();
+  public PacketDirection getDirection() {
+    return context.flow() == PacketFlow.CLIENTBOUND ? PacketDirection.CLIENTBOUND : PacketDirection.SERVERBOUND;
   }
 }

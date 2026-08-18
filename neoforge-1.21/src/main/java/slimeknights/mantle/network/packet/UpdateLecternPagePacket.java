@@ -2,7 +2,7 @@ package slimeknights.mantle.network.packet;
 
 import lombok.AllArgsConstructor;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -22,13 +22,13 @@ public class UpdateLecternPagePacket implements IPacket.Threadsafe {
 
   private final BlockPos pos;
   private final String page;
-  public UpdateLecternPagePacket(RegistryFriendlyByteBuf buffer) {
+  public UpdateLecternPagePacket(FriendlyByteBuf buffer) {
     this.pos = buffer.readBlockPos();
     this.page = buffer.readUtf(100);
   }
 
   @Override
-  public void encode(RegistryFriendlyByteBuf buf) {
+  public void encode(FriendlyByteBuf buf) {
     buf.writeBlockPos(pos);
     buf.writeUtf(page);
   }

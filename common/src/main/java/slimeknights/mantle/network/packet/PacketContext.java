@@ -1,6 +1,6 @@
 package slimeknights.mantle.network.packet;
 
-import net.minecraft.network.protocol.PacketFlow;
+import slimeknights.mantle.network.PacketDirection;
 import net.minecraft.server.level.ServerPlayer;
 
 import javax.annotation.Nullable;
@@ -8,9 +8,9 @@ import javax.annotation.Nullable;
 /**
  * Everything a packet handler is allowed to know about the connection that delivered it.
  * <p>
- * This exists so a packet's handling logic is written against Mantle's own type instead of the loader's payload
- * context, which cannot be created outside a live connection. A packet implementing {@link IPacket} can therefore be
- * handled by a test, or by any future transport, without the handler changing.
+ * This exists so a packet's handling logic is written against Mantle's own type instead of the loader's context type,
+ * which cannot be created outside a live connection and has no shared spelling. A packet implementing {@link IPacket}
+ * can therefore be handled by a test, by either target, or by any future transport, without the handler changing.
  * <p>
  * The surface is deliberately tiny: a survey of every packet in Mantle and in the mods that build on it found only
  * {@link #enqueueWork(Runnable)} and {@link #getSender()} in use. {@link #getDirection()} is included because the
@@ -33,8 +33,8 @@ public interface PacketContext {
   ServerPlayer getSender();
 
   /**
-   * Gets the direction this packet travelled: {@link PacketFlow#CLIENTBOUND} means it was received by a client.
-   * @return  Packet flow
+   * Gets the direction this packet travelled: {@link PacketDirection#CLIENTBOUND} means it was received by a client.
+   * @return  Packet direction
    */
-  PacketFlow getDirection();
+  PacketDirection getDirection();
 }

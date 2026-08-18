@@ -1,6 +1,6 @@
 package slimeknights.mantle.network.packet;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 
 /**
  * A packet that knows how to write itself to a buffer.
@@ -13,11 +13,16 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
  * <p>
  * The decoding half is not on this interface: the registry needs a decoder before an instance exists, so it is passed
  * at registration instead.
+ * <p>
+ * <b>On the buffer type.</b> The parameter is the plain buffer, not the registry-carrying subtype 1.21.1 hands to a
+ * play payload, because that subtype has no 1.20.1 spelling. A transport always passes the richest buffer it has, so a
+ * packet needing the connection's registries goes through
+ * {@link slimeknights.mantle.platform.MantlePlatform#writeItem} rather than naming the subtype.
  */
 public interface ISimplePacket {
   /**
    * Encodes a packet for the buffer.
-   * @param buf  Buffer instance, carrying the connection's registries as every play payload does
+   * @param buf  Buffer instance
    */
-  void encode(RegistryFriendlyByteBuf buf);
+  void encode(FriendlyByteBuf buf);
 }

@@ -1,9 +1,8 @@
 package slimeknights.mantle.network;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
@@ -43,7 +42,7 @@ class MantlePacketWireTest extends BaseMcTest {
     UpdateLecternPagePacket.class, DropLecternBookPacket.class);
 
   /** Snapshots the readable bytes of a buffer without consuming them */
-  private static byte[] readable(RegistryFriendlyByteBuf buffer) {
+  private static byte[] readable(FriendlyByteBuf buffer) {
     byte[] bytes = new byte[buffer.readableBytes()];
     buffer.getBytes(buffer.readerIndex(), bytes);
     return bytes;
@@ -54,15 +53,15 @@ class MantlePacketWireTest extends BaseMcTest {
    * @param decoder  Packet decoder
    * @param writer   Writes the wire form the decoder is expected to read
    */
-  private static void assertWireRoundTrip(Function<RegistryFriendlyByteBuf,? extends IPacket> decoder, Consumer<RegistryFriendlyByteBuf> writer) {
-    RegistryFriendlyByteBuf input = LoadableTest.buffer();
+  private static void assertWireRoundTrip(Function<FriendlyByteBuf,? extends IPacket> decoder, Consumer<FriendlyByteBuf> writer) {
+    FriendlyByteBuf input = LoadableTest.buffer();
     writer.accept(input);
     byte[] expected = readable(input);
 
     IPacket packet = decoder.apply(input);
     assertThat(input.readableBytes()).as("decoder left bytes unread").isZero();
 
-    RegistryFriendlyByteBuf output = LoadableTest.buffer();
+    FriendlyByteBuf output = LoadableTest.buffer();
     packet.encode(output);
     assertThat(readable(output)).isEqualTo(expected);
 
@@ -71,14 +70,14 @@ class MantlePacketWireTest extends BaseMcTest {
   }
 
   /** Runs the packet through the codec its registration hands the loader */
-  private static <P extends IPacket> void assertPayloadRoundTrip(Function<RegistryFriendlyByteBuf,P> decoder, IPacket packet, byte[] expected) {
+  private static <P extends IPacket> void assertPayloadRoundTrip(Function<FriendlyByteBuf,P> decoder, IPacket packet, byte[] expected) {
     @SuppressWarnings("unchecked")
     Class<P> clazz = (Class<P>)packet.getClass();
     PacketRegistration<P> registration = new PacketRegistration<>(
-      ResourceLocation.fromNamespaceAndPath("mantle", "test"), clazz, IPacket::encode, decoder, IPacket::handle, PacketFlow.SERVERBOUND);
-    StreamCodec<RegistryFriendlyByteBuf,PacketPayload<P>> codec = registration.codec();
+      ResourceLocation.fromNamespaceAndPath("mantle", "test"), clazz, IPacket::encode, decoder, IPacket::handle, PacketDirection.SERVERBOUND);
+    StreamCodec<FriendlyByteBuf,PacketPayload<P>> codec = registration.codec();
 
-    RegistryFriendlyByteBuf buffer = LoadableTest.buffer();
+    FriendlyByteBuf buffer = LoadableTest.buffer();
     codec.encode(buffer, registration.wrap(packet));
     // the payload carries the packet's bytes and nothing else; the identifier is written by vanilla ahead of them
     assertThat(readable(buffer)).isEqualTo(expected);

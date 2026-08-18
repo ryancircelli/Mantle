@@ -1,6 +1,5 @@
 package slimeknights.mantle.network;
 
-import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerPlayer;
 import slimeknights.mantle.network.packet.PacketContext;
 
@@ -17,13 +16,13 @@ public class TestPacketContext implements PacketContext {
   public final List<Runnable> enqueued = new ArrayList<>();
   @Nullable
   private final ServerPlayer sender;
-  private final PacketFlow direction;
+  private final PacketDirection direction;
 
   public TestPacketContext() {
-    this(null, PacketFlow.SERVERBOUND);
+    this(null, PacketDirection.SERVERBOUND);
   }
 
-  public TestPacketContext(@Nullable ServerPlayer sender, PacketFlow direction) {
+  public TestPacketContext(@Nullable ServerPlayer sender, PacketDirection direction) {
     this.sender = sender;
     this.direction = direction;
   }
@@ -40,7 +39,7 @@ public class TestPacketContext implements PacketContext {
   }
 
   @Override
-  public PacketFlow getDirection() {
+  public PacketDirection getDirection() {
     return direction;
   }
 

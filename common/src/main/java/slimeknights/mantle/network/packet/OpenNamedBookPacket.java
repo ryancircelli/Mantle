@@ -1,7 +1,7 @@
 package slimeknights.mantle.network.packet;
 
 import lombok.AllArgsConstructor;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import slimeknights.mantle.Mantle;
@@ -16,12 +16,12 @@ public class OpenNamedBookPacket implements IPacket.Threadsafe {
 
   private final ResourceLocation book;
 
-  public OpenNamedBookPacket(RegistryFriendlyByteBuf buffer) {
+  public OpenNamedBookPacket(FriendlyByteBuf buffer) {
     this.book = buffer.readResourceLocation();
   }
 
   @Override
-  public void encode(RegistryFriendlyByteBuf buffer) {
+  public void encode(FriendlyByteBuf buffer) {
     buffer.writeResourceLocation(book);
   }
 

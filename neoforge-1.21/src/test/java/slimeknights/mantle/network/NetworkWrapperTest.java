@@ -1,8 +1,7 @@
 package slimeknights.mantle.network;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,7 @@ class NetworkWrapperTest extends BaseMcTest {
   /** Packet with no state, only ever used to fill a registration */
   private static class EmptyPacket implements IPacket {
     @Override
-    public void encode(RegistryFriendlyByteBuf buffer) {}
+    public void encode(FriendlyByteBuf buffer) {}
 
     @Override
     public void handle(PacketContext context) {}
@@ -42,7 +41,7 @@ class NetworkWrapperTest extends BaseMcTest {
   @Test
   void registerPacket_derivesTheIdFromTheClass() {
     NetworkWrapper network = wrapper();
-    network.registerPacket(EmptyPacket.class, buffer -> new EmptyPacket(), PacketFlow.CLIENTBOUND);
+    network.registerPacket(EmptyPacket.class, buffer -> new EmptyPacket(), PacketDirection.CLIENTBOUND);
     assertThat(network.getRegistry().ids()).containsExactly(ResourceLocation.fromNamespaceAndPath("mantle", "empty"));
   }
 
@@ -51,8 +50,8 @@ class NetworkWrapperTest extends BaseMcTest {
     // the whole point of the identifier: a clash is a mod load failure, not a decoder reading the wrong bytes later
     NetworkWrapper network = wrapper();
     ResourceLocation id = ResourceLocation.fromNamespaceAndPath("mantle", "clash");
-    network.registerPacket(id, EmptyPacket.class, buffer -> new EmptyPacket(), PacketFlow.CLIENTBOUND);
-    assertThatThrownBy(() -> network.registerPacket(id, OtherPacket.class, buffer -> new OtherPacket(), PacketFlow.CLIENTBOUND))
+    network.registerPacket(id, EmptyPacket.class, buffer -> new EmptyPacket(), PacketDirection.CLIENTBOUND);
+    assertThatThrownBy(() -> network.registerPacket(id, OtherPacket.class, buffer -> new OtherPacket(), PacketDirection.CLIENTBOUND))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessageContaining("Duplicate packet ID mantle:clash");
   }
@@ -64,7 +63,7 @@ class NetworkWrapperTest extends BaseMcTest {
   void toPayload_wrapsThePacketInItsDeclaredType() {
     NetworkWrapper network = wrapper();
     ResourceLocation id = ResourceLocation.fromNamespaceAndPath("mantle", "wrapped");
-    network.registerPacket(id, EmptyPacket.class, buffer -> new EmptyPacket(), PacketFlow.CLIENTBOUND);
+    network.registerPacket(id, EmptyPacket.class, buffer -> new EmptyPacket(), PacketDirection.CLIENTBOUND);
 
     EmptyPacket packet = new EmptyPacket();
     CustomPacketPayload payload = network.toPayload(packet);
@@ -87,7 +86,7 @@ class NetworkWrapperTest extends BaseMcTest {
   void toPayload_usesTheExactClass() {
     // a subclass is its own packet, and must not borrow its parent's registration to reach the wire
     NetworkWrapper network = wrapper();
-    network.registerPacket(ResourceLocation.fromNamespaceAndPath("mantle", "parent"), EmptyPacket.class, buffer -> new EmptyPacket(), PacketFlow.CLIENTBOUND);
+    network.registerPacket(ResourceLocation.fromNamespaceAndPath("mantle", "parent"), EmptyPacket.class, buffer -> new EmptyPacket(), PacketDirection.CLIENTBOUND);
     assertThatThrownBy(() -> network.toPayload(new OtherPacket()))
       .isInstanceOf(IllegalArgumentException.class)
       .hasMessageContaining(OtherPacket.class.getName());
@@ -103,10 +102,10 @@ class NetworkWrapperTest extends BaseMcTest {
       (packet, buffer) -> buffer.writeVarInt(7), buffer -> {
         assertThat(buffer.readVarInt()).isEqualTo(7);
         return new EmptyPacket();
-      }, IPacket::handle, PacketFlow.CLIENTBOUND);
+      }, IPacket::handle, PacketDirection.CLIENTBOUND);
 
-    StreamCodec<RegistryFriendlyByteBuf,PacketPayload<EmptyPacket>> codec = registration.codec();
-    RegistryFriendlyByteBuf buffer = LoadableTest.buffer();
+    StreamCodec<FriendlyByteBuf,PacketPayload<EmptyPacket>> codec = registration.codec();
+    FriendlyByteBuf buffer = LoadableTest.buffer();
     codec.encode(buffer, registration.wrap(new EmptyPacket()));
     PacketPayload<EmptyPacket> decoded = codec.decode(buffer);
     assertThat(buffer.readableBytes()).as("codec left bytes unread").isZero();

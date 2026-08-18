@@ -7,8 +7,9 @@ package slimeknights.mantle.network.packet;
  * {@link slimeknights.mantle.util.JsonHelper#syncPackets} and the sending helpers on
  * {@link slimeknights.mantle.network.NetworkWrapper}.
  * <p>
- * A packet does not name its own identity: the identifier passed at registration is what becomes the payload type on
- * the wire. See {@link slimeknights.mantle.network.PacketPayload} for why that is deliberate.
+ * A packet does not name its own identity: the identifier passed at registration is what a target's transport uses to
+ * address it, which on 1.21.1 is the payload type written to the wire and on 1.20.1 is a registration-order index.
+ * That is deliberate - a packet class extending another would otherwise inherit its parent's identity.
  */
 public interface IPacket extends ISimplePacket {
   /**

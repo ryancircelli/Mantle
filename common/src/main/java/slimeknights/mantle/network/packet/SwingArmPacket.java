@@ -8,7 +8,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.Level;
 import slimeknights.mantle.Mantle;
-import slimeknights.mantle.util.OffhandCooldownTracker;
+import slimeknights.mantle.platform.MantlePlatform;
 
 /** Packet to tell a client to swing an entity arm, as the vanilla one resets cooldown */
 public class SwingArmPacket implements IPacket.Threadsafe {
@@ -45,7 +45,7 @@ public class SwingArmPacket implements IPacket.Threadsafe {
       if (world != null) {
         Entity entity = world.getEntity(packet.entityId);
         if (entity instanceof LivingEntity) {
-          OffhandCooldownTracker.swingHand((LivingEntity) entity, packet.hand, false);
+          MantlePlatform.INSTANCE.swingHand((LivingEntity) entity, packet.hand, false);
         }
       }
     }

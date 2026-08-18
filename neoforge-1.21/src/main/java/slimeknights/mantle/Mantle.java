@@ -40,6 +40,7 @@ import slimeknights.mantle.item.LecternBookItem;
 import slimeknights.mantle.loot.LootTableInjector;
 import slimeknights.mantle.loot.MantleLoot;
 import slimeknights.mantle.network.MantleNetwork;
+import slimeknights.mantle.platform.neoforge.NeoForgePacketTransport;
 import slimeknights.mantle.util.OffhandCooldownTracker;
 import slimeknights.mantle.recipe.MantleIngredients;
 import slimeknights.mantle.recipe.MantleRecipes;
@@ -78,7 +79,7 @@ public class Mantle {
     // packets are registered in common setup as they always were; the channel itself is not built until
     // RegisterPayloadHandlersEvent, which NeoForge fires after every setup event
     modBus.addListener(EventPriority.NORMAL, false, FMLCommonSetupEvent.class, this::commonSetup);
-    modBus.addListener(EventPriority.NORMAL, false, RegisterPayloadHandlersEvent.class, MantleNetwork.INSTANCE::registerPayloads);
+    modBus.addListener(EventPriority.NORMAL, false, RegisterPayloadHandlersEvent.class, ((NeoForgePacketTransport)MantleNetwork.INSTANCE.getTransport())::registerPayloads);
     modBus.addListener(EventPriority.NORMAL, false, RegisterEvent.class, this::register);
     modBus.addListener(EventPriority.NORMAL, false, GatherDataEvent.class, this::gatherData);
     MantleConditions.init(modBus);

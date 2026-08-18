@@ -1,7 +1,6 @@
 package slimeknights.mantle.network;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.network.packet.IPacket;
@@ -17,7 +16,7 @@ class PacketRegistryTest {
   /** Packet with no state, only ever used to fill a registration */
   private static class EmptyPacket implements IPacket {
     @Override
-    public void encode(RegistryFriendlyByteBuf buffer) {}
+    public void encode(FriendlyByteBuf buffer) {}
 
     @Override
     public void handle(PacketContext context) {}
@@ -31,7 +30,7 @@ class PacketRegistryTest {
   }
 
   private static <P extends EmptyPacket> PacketRegistration<P> registrationOf(ResourceLocation id, Class<P> clazz) {
-    return new PacketRegistration<>(id, clazz, IPacket::encode, buffer -> null, IPacket::handle, PacketFlow.CLIENTBOUND);
+    return new PacketRegistration<>(id, clazz, IPacket::encode, buffer -> null, IPacket::handle, PacketDirection.CLIENTBOUND);
   }
 
 
@@ -164,7 +163,7 @@ class PacketRegistryTest {
   void defaultPath_anonymousClassFails() {
     IPacket anonymous = new IPacket() {
       @Override
-      public void encode(RegistryFriendlyByteBuf buffer) {}
+      public void encode(FriendlyByteBuf buffer) {}
 
       @Override
       public void handle(PacketContext context) {}

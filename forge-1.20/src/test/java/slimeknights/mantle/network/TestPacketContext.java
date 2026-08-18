@@ -1,7 +1,6 @@
 package slimeknights.mantle.network;
 
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkDirection;
 import slimeknights.mantle.network.packet.PacketContext;
 
 import javax.annotation.Nullable;
@@ -18,13 +17,13 @@ public class TestPacketContext implements PacketContext {
   @Nullable
   private final ServerPlayer sender;
   @Nullable
-  private final NetworkDirection direction;
+  private final PacketDirection direction;
 
   public TestPacketContext() {
-    this(null, NetworkDirection.PLAY_TO_SERVER);
+    this(null, PacketDirection.SERVERBOUND);
   }
 
-  public TestPacketContext(@Nullable ServerPlayer sender, @Nullable NetworkDirection direction) {
+  public TestPacketContext(@Nullable ServerPlayer sender, @Nullable PacketDirection direction) {
     this.sender = sender;
     this.direction = direction;
   }
@@ -42,7 +41,7 @@ public class TestPacketContext implements PacketContext {
 
   @Nullable
   @Override
-  public NetworkDirection getDirection() {
+  public PacketDirection getDirection() {
     return direction;
   }
 

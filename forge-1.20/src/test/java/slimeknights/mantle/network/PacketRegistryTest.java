@@ -2,7 +2,6 @@ package slimeknights.mantle.network;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkDirection;
 import org.junit.jupiter.api.Test;
 import slimeknights.mantle.network.packet.IPacket;
 import slimeknights.mantle.network.packet.PacketContext;
@@ -31,7 +30,7 @@ class PacketRegistryTest {
   }
 
   private static <P extends EmptyPacket> PacketRegistration<P> registrationOf(ResourceLocation id, Class<P> clazz) {
-    return new PacketRegistration<>(id, clazz, IPacket::encode, buffer -> null, IPacket::handle, NetworkDirection.PLAY_TO_CLIENT);
+    return new PacketRegistration<>(id, clazz, IPacket::encode, buffer -> null, IPacket::handle, PacketDirection.CLIENTBOUND);
   }
 
 
