@@ -12,8 +12,8 @@ ehthumbs.db
 Thumbs.db
 #gradle stuff
 /.gradle
-/build/
-/run/
+build/
+run/
 #IDEA files from Gradle
 .idea/
 /*.iml

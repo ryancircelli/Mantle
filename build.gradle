@@ -1,239 +1,29 @@
 /*
- * Mantle
- * Master build file
- * Based on TConstruct's master build file
- * Authors: Sunstrike, ProgWML6
- * Help from AbrarSyed
-*/
+ * Mantle - version-agnostic layout exploration.
+ *
+ * The root project builds nothing. Everything lives in the two target modules,
+ * because the two toolchains (ForgeGradle 6 / ModDevGradle) cannot be applied
+ * to the same project and disagree about Java version, mappings source and
+ * Minecraft dependency resolution.
+ */
 
 plugins {
-    id 'eclipse'
-    id 'idea'
-    id 'maven-publish'
-    // ModDevGradle replaces ForgeGradle 6 + Librarian for the 1.21.1 / NeoForge port.
-    id 'net.neoforged.moddev' version '2.0.143'
-    id 'io.freefair.lombok' version '8.14.4'
-}
-
-repositories {
-    mavenCentral()
-    maven {
-        // Our maven
-        name = "Prog's Maven"
-        url = 'https://dvs1.progwml6.com/files/maven'
-    }
-    maven {
-        // Parchment; also mirrored on the NeoForged maven that ModDevGradle adds itself,
-        // declared here so the mappings source is obvious from the build script.
-        name = "ParchmentMC"
-        url = 'https://maven.parchmentmc.org'
-    }
-    maven {
-        // JEI
-        name = "BlameJared"
-        url = 'https://maven.blamejared.com'
-    }
-    // If you have mod jar dependencies in ./libs, you can declare them as a repository like so:
-    // flatDir {
-    //     dir 'libs'
-    // }
+    id 'base'
 }
 
 group = 'slimeknights.mantle'
-base {
-    archivesName = 'Mantle'
-}
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-// sets version to the slimeKnights version format
-task buildInfo {
-    try {
-        def cmd = "git rev-parse --short HEAD"
-        def proc = cmd.execute()
-        proc.waitFor()
-        if (proc.exitValue() == 0) {
-            ext.revision = proc.text.trim()
-        } else {
-            ext.revision = "GITBORK"
-        }
-    } catch (all) {
-        ext.revision = "gitgud"
+// `gradlew build` at the root fans out to both targets.
+tasks.named('build') {
+    dependsOn ':forge-1.20:build', ':neoforge-1.21:build'
+}
+
+tasks.register('printSharedSources') {
+    description = 'Lists the source files compiled into both targets.'
+    doLast {
+        def dir = file('common/src/main/java')
+        def files = fileTree(dir).matching { include '**/*.java' }.files.sort()
+        println "common/src/main/java: ${files.size()} shared source files"
+        files.each { println "  ${dir.toPath().relativize(it.toPath())}" }
     }
-
-    if (System.getenv().BUILD_NUMBER != null) {
-        ext.buildNum = "${System.getenv().BUILD_NUMBER}"
-    } else {
-        ext.buildNum = "DEV.${project.buildInfo.revision}"
-    }
-}
-ext.artifact_version = 'NFG'
-if (System.getenv().ARTIFACT_VERSION == null) {
-    artifact_version = "${mod_version}.${project.buildInfo.buildNum}"
-}
-if (System.getenv().ARTIFACT_VERSION != null) {
-    artifact_version = "${system.getenv().ARTIFACT_VERSION}"
-}
-
-version = "${minecraft_version}-${artifact_version}"
-println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}, Version: ${version}"
-
-sourceSets {
-    main {
-        resources {
-            srcDirs "src/generated/resources"
-            //But exclude the cache of the generated data from what gets built
-            exclude '.cache'
-        }
-    }
-}
-
-neoForge {
-    version = neoforge_version
-
-    parchment {
-        minecraftVersion = parchment_minecraft_version
-        mappingsVersion = project.parchment_version
-    }
-
-    // The shipped access transformer is now Mojang-named end to end (translated in M2), so
-    // ModDevGradle's convention of picking up src/main/resources/META-INF/accesstransformer.cfg
-    // is left alone. validateAccessTransformers fails the build if any line stops resolving,
-    // which is the safety net M2 wants and keeps the file honest for the rest of the port.
-    validateAccessTransformers = true
-
-    mods {
-        mantle {
-            sourceSet sourceSets.main
-        }
-    }
-
-    runs {
-        // applies to all the run configs below
-        configureEach {
-            gameDirectory = project.file('run')
-            // Recommended logging level for the console.
-            // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
-            logLevel = org.slf4j.event.Level.DEBUG
-        }
-
-        client {
-            client()
-        }
-
-        server {
-            server()
-            programArgument '--nogui'
-        }
-
-        data {
-            data()
-            programArguments.addAll(
-                    '--mod', 'mantle',
-                    '--all',
-                    '--output', file('src/generated/resources/').absolutePath,
-                    '--existing', file('src/main/resources/').absolutePath)
-        }
-
-        gameTestServer {
-            type = 'gameTestServer'
-        }
-    }
-
-    // Puts a loaded Minecraft on the test classpath and bootstraps FML around JUnit, which is what lets the
-    // serialization tests call Bootstrap.bootStrap() and reach the real registries. testedMod is the mod whose
-    // classes the tests belong to, so the test source set is loaded as part of it rather than as a separate mod.
-    unitTest {
-        enable()
-        testedMod = mods.mantle
-    }
-}
-
-dependencies {
-    // Minecraft and NeoForge come from the neoForge block above, not from a dependency line.
-    // JEI: compile against the API only (both halves - the plugin interfaces are common, the
-    // registration/rendering interfaces this module actually implements are neoforge-specific),
-    // and pull the runnable mod jar in only for local testing via the client run.
-    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
-    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
-    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
-
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-    testImplementation 'org.mockito:mockito-inline:4.2.0'
-    testImplementation 'org.assertj:assertj-core:3.21.0'
-}
-
-test {
-    useJUnitPlatform()
-    // forward the junit switches to the test JVM, notably junit.jupiter.conditions.deactivate to run a disabled benchmark on demand
-    System.properties.each { key, value ->
-        if (key.toString().startsWith('junit.')) {
-            systemProperty key.toString(), value
-        }
-    }
-}
-
-tasks.named('processResources', ProcessResources).configure {
-    var replaceProperties = [
-        'version': artifact_version,
-        'loader_range': loader_range,
-        'minecraft_range': minecraft_range,
-        'neoforge_range': neoforge_range
-    ]
-    inputs.properties replaceProperties
-
-    // No `project` in the binding: neither template references it, and reaching for
-    // Task.project at execution time is deprecated and configuration-cache hostile.
-    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
-        expand replaceProperties
-    }
-}
-
-tasks.named('jar', Jar).configure {
-    manifest {
-        attributes([
-                "Specification-Title"     : "Mantle",
-                "Specification-Vendor"    : "Slime Knights",
-                "Specification-Version"   : "1", // We are version 1 of ourselves
-                "Implementation-Title"    : project.name,
-                "Implementation-Version"  : "${version}",
-                "Implementation-Vendor"   : "Slime Knights",
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
-    }
-}
-
-java {
-    withSourcesJar()
-}
-
-sourcesJar {
-    exclude 'assets/**'
-    exclude 'data/**'
-    exclude 'pack.png'
-    exclude 'pack.mcmeta'
-    exclude 'META-INF/neoforge.mods.toml'
-}
-
-artifacts {
-    archives sourcesJar
-}
-
-publishing {
-    publications {
-        register('mavenJava', MavenPublication) {
-            artifact jar
-            artifact sourcesJar
-        }
-    }
-
-    repositories {
-        if (project.hasProperty('DEPLOY_DIR')) {
-            maven { url DEPLOY_DIR }
-        }
-    }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }

@@ -1,0 +1,80 @@
+package slimeknights.mantle.data.loadable.primitive;
+
+import com.google.gson.JsonSyntaxException;
+import com.mojang.serialization.DynamicOps;
+import net.minecraft.network.FriendlyByteBuf;
+import slimeknights.mantle.data.loadable.OpsHelper;
+import slimeknights.mantle.data.loadable.array.ArrayLoadable;
+import slimeknights.mantle.data.loadable.array.BooleanArrayLoadable;
+import slimeknights.mantle.data.loadable.field.LoadableField;
+import slimeknights.mantle.util.typed.TypedMap;
+
+import java.util.Locale;
+import java.util.Optional;
+import java.util.function.Function;
+
+/** Loadable for a boolean */
+public enum BooleanLoadable implements StringLoadable<Boolean> {
+  INSTANCE;
+
+  @SuppressWarnings("unused")  // Just a static helper to hide the misleading string loadable
+  public static final BooleanLoadable DEFAULT = INSTANCE;
+
+  @Override
+  public <O> Boolean convert(DynamicOps<O> ops, O input, String key, TypedMap context) {
+    // most formats have a native boolean, but fall back to the string form so the loadable stays usable as a map key
+    Optional<Boolean> value = ops.getBooleanValue(input).result();
+    if (value.isPresent()) {
+      return value.get();
+    }
+    return parseString(OpsHelper.getString(ops, input, key), key, context);
+  }
+
+  @Override
+  public <O> O serialize(DynamicOps<O> ops, Boolean object) {
+    return ops.createBoolean(object);
+  }
+
+  @Override
+  public Boolean decode(FriendlyByteBuf buffer, TypedMap context) {
+    return buffer.readBoolean();
+  }
+
+  @Override
+  public void encode(FriendlyByteBuf buffer, Boolean object) {
+    buffer.writeBoolean(object);
+  }
+
+  @Override
+  public <P> LoadableField<Boolean,P> defaultField(String key, Boolean defaultValue, Function<P,Boolean> getter) {
+    // booleans are cleaner if they serialize by default
+    return defaultField(key, defaultValue, true, getter);
+  }
+
+  /** Creates a loadable for a  boolean array */
+  public ArrayLoadable<boolean[]> array(int minSize, int maxSize) {
+    return new BooleanArrayLoadable(this, minSize, maxSize);
+  }
+
+  /** Creates a loadable for a  boolean array */
+  public ArrayLoadable<boolean[]> array(int minSize) {
+    return array(minSize, Integer.MAX_VALUE);
+  }
+
+  /* String loadable */
+
+  @Override
+  public Boolean parseString(String value, String key, TypedMap context) {
+    // Boolean#valueOf and Boolean#parseBoolean both just treat all non-true as false, which is less desirable for well-formed JSON
+    return switch (value.toLowerCase(Locale.ROOT)) {
+      case "true" -> true;
+      case "false" -> false;
+      default -> throw new JsonSyntaxException("Invalid boolean '" + value + '\'');
+    };
+  }
+
+  @Override
+  public String getString(Boolean object) {
+    return object.toString();
+  }
+}

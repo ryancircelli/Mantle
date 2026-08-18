@@ -1,0 +1,155 @@
+/*
+ * Mantle - NeoForge 1.21.1 target.
+ *
+ * Compiles common/src/main/java together with this module's own sources against
+ * NeoForge 1.21.1 on a Java 21 toolchain. See forge-1.20/build.gradle for why
+ * the shared code is a srcDir and not a project dependency.
+ */
+
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '2.0.143'
+    id 'io.freefair.lombok' version '8.14.4'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "Prog's Maven"
+        url = 'https://dvs1.progwml6.com/files/maven'
+    }
+    maven {
+        name = 'ParchmentMC'
+        url = 'https://maven.parchmentmc.org'
+    }
+    maven {
+        name = 'BlameJared'
+        url = 'https://maven.blamejared.com'
+    }
+}
+
+group = 'slimeknights.mantle'
+base {
+    archivesName = 'Mantle'
+}
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+ext.minecraft_version = project.neoforge_minecraft_version
+
+version = "${minecraft_version}-${mod_version}"
+println "neoforge-1.21: Java toolchain 21, Minecraft ${minecraft_version}, NeoForge ${neoforge_version}"
+
+sourceSets {
+    main {
+        java {
+            // The shared half of the codebase.
+            srcDir rootProject.file('common/src/main/java')
+        }
+        resources {
+            srcDir rootProject.file('common/src/main/resources')
+            srcDirs += "src/generated/resources"
+            exclude '.cache'
+        }
+    }
+}
+
+neoForge {
+    version = project.neoforge_version
+
+    parchment {
+        minecraftVersion = project.neoforge_parchment_minecraft_version
+        mappingsVersion = project.neoforge_parchment_version
+    }
+
+    validateAccessTransformers = true
+
+    mods {
+        mantle {
+            sourceSet sourceSets.main
+        }
+    }
+
+    runs {
+        configureEach {
+            gameDirectory = project.file('run')
+            logLevel = org.slf4j.event.Level.DEBUG
+        }
+        client {
+            client()
+        }
+        server {
+            server()
+            programArgument '--nogui'
+        }
+        data {
+            data()
+            programArguments.addAll(
+                    '--mod', 'mantle',
+                    '--all',
+                    '--output', file('src/generated/resources/').absolutePath,
+                    '--existing', file('src/main/resources/').absolutePath)
+        }
+        gameTestServer {
+            type = 'gameTestServer'
+        }
+    }
+
+    unitTest {
+        enable()
+        testedMod = mods.mantle
+    }
+}
+
+dependencies {
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${neoforge_jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${neoforge_jei_version}"
+    runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${neoforge_jei_version}"
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+    testImplementation 'org.mockito:mockito-inline:4.2.0'
+    testImplementation 'org.assertj:assertj-core:3.21.0'
+}
+
+test {
+    useJUnitPlatform()
+    System.properties.each { key, value ->
+        if (key.toString().startsWith('junit.')) {
+            systemProperty key.toString(), value
+        }
+    }
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+        'version': project.version,
+        'loader_range': neoforge_loader_range,
+        'minecraft_range': neoforge_minecraft_range,
+        'neoforge_range': neoforge_range
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                "Specification-Title"     : "Mantle",
+                "Specification-Vendor"    : "Slime Knights",
+                "Specification-Version"   : "1",
+                "Implementation-Title"    : project.name,
+                "Implementation-Version"  : "${version}",
+                "Implementation-Vendor"   : "Slime Knights",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
